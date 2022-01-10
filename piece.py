@@ -7,6 +7,12 @@ class Piece:
         self.team = team
         self.coords = coords
 
+    # setcoords(c) method
+    # takes a scalar c, the new coords
+    # and sets coords = c
+    def setcoords(self,c):
+        self.coords = c
+
     # getcoords() method
     # returns coords
     def getcoords(self):
@@ -16,3 +22,11 @@ class Piece:
     # returns icon
     def geticon(self):
         return self.icon
+
+    # getmoves() method
+    # returns moves
+    # moves are scalars (x,y)
+    # where x is the difference in position horizontally
+    # and y is the difference vertically
+    def getmoves(self):
+        return self.moves
