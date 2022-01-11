@@ -1,11 +1,17 @@
 class Piece:
 
-    def __init__(self, name, icon, moves, team, coords):
+    def __init__(self, name, icon, moves, team, coords, points):
         self.name = name
         self.icon = icon
         self.moves = moves
         self.team = team
         self.coords = coords
+        self.points = points
+
+    # getname() method
+    # returns name
+    def getname(self):
+        return self.name
 
     # setcoords(c) method
     # takes a scalar c, the new coords
@@ -30,3 +36,13 @@ class Piece:
     # and y is the difference vertically
     def getmoves(self):
         return self.moves
+
+    # getteam() method
+    # returns team
+    def getteam(self):
+        return self.team
+
+    # getpoints() method
+    # returns points
+    def getpoints(self):
+        return self.points

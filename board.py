@@ -4,6 +4,7 @@ class Board:
 
     def __init__(self,pieces):
         self.pieces = pieces
+        self.points = [0,0]
         self.gamestate = ""
         for i in range(100):
             # Borders
@@ -39,6 +40,9 @@ class Board:
     # render() method
     # outputs board state to console
     def render(self):
+        #for piece in self.pieces:
+        #    print(f'{piece.getname()}, {piece.getteam()}')
+        print(f'Points: White {self.points[0]}, Black {self.points[1]}')
         rstate = ''
         for c in self.gamestate:
             if c != '\n':
@@ -52,9 +56,9 @@ class Board:
     # where x and y are both integers 0 - 9
     # and return any piece found at those coords
     def fetchpiece(self, c):
-        for piece in self.pieces:
+        for index, piece in enumerate(self.pieces):
             if piece.getcoords() == c:
-                return piece
+                return (index, piece)
         return 'none'
 
     # moveisvalid(s,d,p)
@@ -62,36 +66,54 @@ class Board:
     # and a scalar d, the destination coords
     # and a piece p, the piece being moved
     def moveisvalid(self, s, d, p):
+        # print(f"Checking: move {p.getname()} from {s} to {d}")
         moves = p.getmoves()
+        if self.fetchpiece(d) != 'none' and self.fetchpiece(d)[1].getteam() == p.getteam():
+            return False
         for move in moves:
-            if move == ('x','x'):
+            # Check diagonal moves
+            if move == ('x','x') and (s[0] - d[0]) == (s[1] - d[1]):
+                # print("Checking both axes")
                 tracker = s
                 while tracker != d:
+                    print(f"(x,x) check {tracker}")
                     tracker = (tracker[0] + 1, tracker[1] + 1)
                     if tracker == d:
                         return True
                     else:
-                        if self.fetchpiece(tracker) != 'none':
+                        if self.fetchpiece(tracker) != 'none' or self.coordstoindex(tracker) > 89 or self.coordstoindex(tracker) < 9:
                             break
-            elif move == ('x',0):
+            # Check horizontal moves
+            elif move == ('x',0) and (s[1] - d[1]) == 0:
+                # print("Checking x-axis")
                 tracker = s
+                coeff = 1
+                if (s[0] - d[0]) > 0:
+                    coeff = -1
                 while tracker != d:
-                    tracker = (tracker[0] + 1, tracker[1])
+                    # print(f"(x,0) check {tracker}")
+                    tracker = (tracker[0] + (1 * coeff), tracker[1])
                     if tracker == d:
                         return True
                     else:
-                        if self.fetchpiece(tracker) != 'none':
+                        if self.fetchpiece(tracker) != 'none' or self.coordstoindex(tracker) > 89 or self.coordstoindex(tracker) < 9:
                             break
-            elif move == (0,'x'):
+            # Check vertical moves
+            elif move == (0,'x') and (s[0] - d[0]) == 0:
+                # print("Checking y-axis")
                 tracker = s
+                coeff = 1
+                if (s[1] - d[1]) > 0:
+                    coeff = -1
                 while tracker != d:
-                    tracker = (tracker[0], tracker[1] + 1)
+                    # print(f"(0,x) check {tracker}")
+                    tracker = (tracker[0], tracker[1] + (1 * coeff))
                     if tracker == d:
                         return True
                     else:
-                        if self.fetchpiece(tracker) != 'none':
+                        if self.fetchpiece(tracker) != 'none' or self.coordstoindex(tracker) > 89 or self.coordstoindex(tracker) < 9:
                             break
-
+            # Check bounded moves
             elif move == (d[0] - s[0],d[1] - s[1]):
                 return True
         return False
@@ -101,6 +123,9 @@ class Board:
     # and a scalar d, the destination coords
     # and a piece p, the piece being moved
     def movepiece(self, s, d, p):
+        if self.fetchpiece(d) != 'none':
+            self.points[self.fetchpiece(d)[1].getteam() - 1] += self.fetchpiece(d)[1].getpoints()
+            self.pieces.pop(self.fetchpiece(d)[0])
         p.setcoords(d)
         i = self.coordstoindex(s)
         k = self.coordstoindex(d)
