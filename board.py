@@ -5,6 +5,7 @@ class Board:
     def __init__(self,pieces):
         self.pieces = pieces
         self.points = [0,0]
+        self.enpassent = 'none'
         self.gamestate = ""
         for i in range(100):
             # Borders
@@ -67,6 +68,37 @@ class Board:
     # and a piece p, the piece being moved
     def moveisvalid(self, s, d, p):
         # print(f"Checking: move {p.getname()} from {s} to {d}")
+        #Pawn Exceptions
+        if p.getname() == "Pawn":
+            # 2 tile move
+            if abs(d[1] - s[1]) == 2 and s[0] == d[0]:
+            #    print('2 tile move')
+                if d[0] != s[0]:
+                    return False
+                if p.getteam() == 1:
+                    if s[1] == 2 and d[1] == 4 and self.fetchpiece((d[0],d[1]-1)) == 'none' and self.fetchpiece(d) == 'none':
+                        # enable en passent
+                        return True
+                else:
+                    if s[1] == 7 and d[1] == 5 and self.fetchpiece((d[0],d[1] + 1)) == 'none' and self.fetchpiece(d) == 'none':
+                        #enable en passent
+                        return True
+            # Capturing
+            elif self.fetchpiece(d) != 'none' and abs(s[0] - d[0]) == 1 and s[1] - d[1] == -1 * (2 * (p.getteam() % 2) - 1):
+            #    print('valid capture')
+                return True
+            # Standard move
+            elif s[0] - d[0] == 0 and s[1] - d[1] == -1 * (2 * (p.getteam() % 2) - 1) and self.fetchpiece(d) == 'none':
+            #    print('normal move')
+                return True
+            # En passent
+            elif d == self.enpassent and abs(s[0] - d[0]) == 1 and s[1] - d[1] == -1 * (2 * (p.getteam() % 2) - 1):
+            #    print('valid enpassent')
+                return True
+            else:
+            #    print('invalid move')
+                return False
+
         if d[0] < 1 or d[0] > 8 or d[1] < 1 or d[1] > 8:
             return False
         moves = p.getmoves()
@@ -133,6 +165,22 @@ class Board:
     # and a scalar d, the destination coords
     # and a piece p, the piece being moved
     def movepiece(self, s, d, p):
+        # print('movepiece()')
+        e = -1
+        if d == self.enpassent and p.getname() == "Pawn":
+            # print('enpassent')
+            t = (d[0], d[1] + (-1 * ((2 * (p.getteam() % 2)) - 1)))
+            e = self.coordstoindex(t)
+            # print(t)
+            self.points[p.getteam() - 1] += self.fetchpiece(t)[1].getpoints()
+            self.pieces.pop(self.fetchpiece(t)[0])
+        elif p.getname() == "Pawn" and abs(s[1] - d[1]) == 2:
+            if s[1] < d[1]:
+                self.enpassent = (d[0],d[1] - 1)
+            else:
+                self.enpassent = (d[0],d[1] + 1)
+        else:
+            self.enpassent = 'none'
         if self.fetchpiece(d) != 'none':
             self.points[p.getteam() - 1] += self.fetchpiece(d)[1].getpoints()
             self.pieces.pop(self.fetchpiece(d)[0])
@@ -143,6 +191,11 @@ class Board:
         for c in range(len(self.gamestate)):
             if c == i:
                 if s[0] % 2 == s[1] % 2:
+                    ngs += '-'
+                else:
+                    ngs += ' '
+            elif c == e:
+                if self.indextocoords(e)[0] % 2 == self.indextocoords(e)[1] % 2:
                     ngs += '-'
                 else:
                     ngs += ' '
@@ -158,6 +211,7 @@ class Board:
     # to see if it would result in that
     # player being in check
     def resultsincheck(self,s,d,p):
+        # print('resultsincheck()')
         ngs = ""
         i = self.coordstoindex(s)
         k = self.coordstoindex(d)
@@ -203,13 +257,13 @@ class Board:
     # playermated(p) method
     # returns whether a player p is in checkmate
     def playermated(self,p):
-        print('Checking for mate')
+        # print('Checking for mate')
         for index, piece in enumerate(self.pieces):
             if piece.getteam() == p:
                 for i in range(99):
                     if self.moveisvalid(piece.getcoords(), self.indextocoords(i),piece):
                         if not self.resultsincheck(piece.getcoords(),self.indextocoords(i),piece):
-                            print(f'valid move: {piece.getcoords()} {self.indextocoords(i)} {piece.getname()}')
+                            # print(f'valid move: {piece.getcoords()} {self.indextocoords(i)} {piece.getname()}')
                             return False
         return True
 
