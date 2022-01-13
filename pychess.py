@@ -4,15 +4,45 @@ from board import Board
 def generatepieces():
     pieces = []
     
-    #White
+    # White
+    # Major pieces
     pieces.append(Piece("Rook",'R',[('x',0),(0,'x')],1,(1,1),5))
     pieces.append(Piece("Knight",'N',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],1,(2,1),3))
+    pieces.append(Piece("Bishop",'B',[('x','x')],1,(3,1),3))
+    pieces.append(Piece("Queen",'Q',[('x',0),('x','x'),(0,'x')],1,(4,1),9))
     pieces.append(Piece("King",'K',[(-1,-1),(0,-1),(1,-1),(-1,0),(1,0),(-1,1),(0,1),(1,1)],1,(5,1),0))
+    pieces.append(Piece("Bishop",'B',[('x','x')],1,(6,1),3))
+    pieces.append(Piece("Knight",'N',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],1,(7,1),3))
+    pieces.append(Piece("Rook",'R',[('x',0),(0,'x')],1,(8,1),5))
+    # Pawns
+    pieces.append(Piece("Pawn",'P',[(0,1)],1,(1,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1)],1,(2,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1)],1,(3,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1)],1,(4,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1)],1,(5,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1)],1,(6,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1)],1,(7,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1)],1,(8,2),1))
 
-    #Black
+    # Black
+    # Major Pieces
     pieces.append(Piece("Rook",'r',[('x',0),(0,'x')],2,(1,8),5))
     pieces.append(Piece("Knight",'n',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],2,(2,8),3))
+    pieces.append(Piece("Bishop",'b',[('x','x')],2,(3,8),3))
+    pieces.append(Piece("Queen",'q',[('x',0),('x','x'),(0,'x')],2,(4,8),9))
     pieces.append(Piece("King",'k',[(-1,-1),(0,-1),(1,-1),(-1,0),(1,0),(-1,1),(0,1),(1,1)],2,(5,8),0))
+    pieces.append(Piece("Bishop",'b',[('x','x')],2,(6,8),3))
+    pieces.append(Piece("Knight",'n',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],2,(7,8),3))
+    pieces.append(Piece("Rook",'r',[('x',0),(0,'x')],2,(8,8),5))
+    # Pawns
+    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(1,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(2,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(3,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(4,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(5,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(6,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(7,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(8,7),1))
 
     return pieces
 
@@ -49,7 +79,11 @@ def main():
                         if turn == 1:
                             turn = 2
                             if board.playerincheck(turn):
-                                print('Check!')
+                                if board.playermated(turn):
+                                    print('Checkmate!')
+                                    return
+                                else:
+                                    print('Check!')
                         else:
                             turn = 1
                             if board.playerincheck(turn):

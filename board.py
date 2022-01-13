@@ -67,17 +67,27 @@ class Board:
     # and a piece p, the piece being moved
     def moveisvalid(self, s, d, p):
         # print(f"Checking: move {p.getname()} from {s} to {d}")
+        if d[0] < 1 or d[0] > 8 or d[1] < 1 or d[1] > 8:
+            return False
         moves = p.getmoves()
         if self.fetchpiece(d) != 'none' and self.fetchpiece(d)[1].getteam() == p.getteam():
+            # print('Square occupied by teammate')
             return False
         for move in moves:
+            # print(f'{move} {s} {d}')
             # Check diagonal moves
-            if move == ('x','x') and (s[0] - d[0]) == (s[1] - d[1]):
+            if move == ('x','x') and abs(s[0] - d[0]) == abs(s[1] - d[1]):
                 # print("Checking both axes")
                 tracker = s
+                cx = 1
+                cy = 1
+                if d[0] < s[0]:
+                    cx = -1
+                if d[1] < s[1]:
+                    cy = -1
                 while tracker != d:
-                    print(f"(x,x) check {tracker}")
-                    tracker = (tracker[0] + 1, tracker[1] + 1)
+                    # print(f"(x,x) check {tracker}")
+                    tracker = (tracker[0] + cx, tracker[1] + cy)
                     if tracker == d:
                         return True
                     else:
@@ -124,7 +134,7 @@ class Board:
     # and a piece p, the piece being moved
     def movepiece(self, s, d, p):
         if self.fetchpiece(d) != 'none':
-            self.points[self.fetchpiece(d)[1].getteam() - 1] += self.fetchpiece(d)[1].getpoints()
+            self.points[p.getteam() - 1] += self.fetchpiece(d)[1].getpoints()
             self.pieces.pop(self.fetchpiece(d)[0])
         p.setcoords(d)
         i = self.coordstoindex(s)
@@ -132,10 +142,10 @@ class Board:
         ngs = ""
         for c in range(len(self.gamestate)):
             if c == i:
-                if s[0] % 2 == 0 and s[1] % 2 == 0:
-                    ngs += ' '
-                else:
+                if s[0] % 2 == s[1] % 2:
                     ngs += '-'
+                else:
+                    ngs += ' '
             elif c == k:
                 ngs += p.geticon()
             else:
@@ -189,6 +199,19 @@ class Board:
             if self.moveisvalid(piece.getcoords(), tk.getcoords(), piece):
                 return True
         return False
+
+    # playermated(p) method
+    # returns whether a player p is in checkmate
+    def playermated(self,p):
+        print('Checking for mate')
+        for index, piece in enumerate(self.pieces):
+            if piece.getteam() == p:
+                for i in range(99):
+                    if self.moveisvalid(piece.getcoords(), self.indextocoords(i),piece):
+                        if not self.resultsincheck(piece.getcoords(),self.indextocoords(i),piece):
+                            print(f'valid move: {piece.getcoords()} {self.indextocoords(i)} {piece.getname()}')
+                            return False
+        return True
 
     # indextocoords(i) method
     # takes an int 0 - 99
