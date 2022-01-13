@@ -187,6 +187,26 @@ class Board:
         p.setcoords(d)
         i = self.coordstoindex(s)
         k = self.coordstoindex(d)
+        if p.getname() == "Pawn" and ((d[1] == 8 and p.getteam() == 1) or (d[1] == 1 and p.getteam() == 2)):
+            promo = input("Choose a piece:")
+            if p.getteam() == 1:
+                if promo.capitalize() == "Queen":
+                    p = Piece("Queen",'Q',[('x',0),('x','x'),(0,'x')],1,d,9)
+                if promo.capitalize() == "Rook":
+                    p = Piece("Rook",'R',[('x',0),(0,'x')],1,d,5)
+                if promo.capitalize() == "Bishop":
+                    p = Piece("Bishop",'B',[('x','x')],1,d,3)
+                if promo.capitalize() == "Knight":
+                    p = Piece("Knight",'N',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],1,d,3)
+            if p.getteam() == 2:
+                if promo.capitalize() == "Queen":
+                    p = Piece("Queen",'q',[('x',0),('x','x'),(0,'x')],2,d,9)
+                if promo.capitalize() == "Rook":
+                    p = Piece("Rook",'r',[('x',0),(0,'x')],2,d,5)
+                if promo.capitalize() == "Bishop":
+                    p = Piece("Bishop",'b',[('x','x')],2,d,3)
+                if promo.capitalize() == "Knight":
+                    p = Piece("Knight",'n',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],2,d,3)
         ngs = ""
         for c in range(len(self.gamestate)):
             if c == i:
