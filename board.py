@@ -143,6 +143,53 @@ class Board:
         self.gamestate = ngs
         self.render()
 
+    # resultsincheck(s,d,p) method
+    # computes an otherwise valid move
+    # to see if it would result in that
+    # player being in check
+    def resultsincheck(self,s,d,p):
+        ngs = ""
+        i = self.coordstoindex(s)
+        k = self.coordstoindex(d)
+        for c in range(len(self.gamestate)):
+            if c == i:
+                if s[0] % 2 == 0 and s[1] % 2 == 0:
+                    ngs += ' '
+                else:
+                    ngs += '-'
+            elif c == k:
+                ngs += p.geticon()
+            else:
+                ngs += self.gamestate[c]
+        tk = self.pieces[0]
+        for index, piece in enumerate(self.pieces):
+            if piece.getname() == 'King' and piece.getteam() == p.getteam():
+                tk = piece
+                break
+        for index, piece in enumerate(self.pieces):
+            if piece.getteam() != p.getteam():
+                if p.getname() != 'King':
+                    if self.moveisvalid(piece.getcoords(), tk.getcoords(), piece):
+                        print(f'{piece.getcoords()} {tk.getcoords()}')
+                        return True
+                else:
+                    if self.moveisvalid(piece.getcoords(), d, piece):
+                        return True
+        return False
+
+    # playerincheck(p) method
+    # returns whether a player p is currently in check
+    def playerincheck(self,p):
+        tk = self.pieces[0]
+        for index, piece in enumerate(self.pieces):
+            if piece.getname() == 'King' and piece.getteam() == p:
+                tk = piece
+                break
+        for index, piece in enumerate(self.pieces):
+            if self.moveisvalid(piece.getcoords(), tk.getcoords(), piece):
+                return True
+        return False
+
     # indextocoords(i) method
     # takes an int 0 - 99
     # and converts it to a scalar (x,y)
