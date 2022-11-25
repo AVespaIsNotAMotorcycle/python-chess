@@ -1,37 +1,47 @@
+from utils import DEFAULT_SETTINGS, altocoord, coordtoal
 from piece import Piece
 from board import Board, generatepieces
+from opponent import Opponent
 
-# converts chessboard notation to coordinates
-def altocoord(i):
-  # check that i is str of len 2
-  if len(i) != 2:
-    return False
-  # check that i[0] is a letter
-  if i[0].isalpha() == False:
-    return False
-  # check that i[1] is a number
-  if i[1].isdecimal() == False:
-    return False
-  return (ord(i[0]) - 96,int(i[1]))
 
-# handles user input given a turn number 'turn'
-# and a boardstate 'board'
-# returns 1 if user input was valid
-# otherwise returns 0
-def handleinput(turn, board):
+'''
+handles user input given a turn number 'turn'
+and a boardstate 'board'
+and a dictionary 'settings'
+of form:
+{
+  opponent: ai || human (required)
+  playercolor: white || black (optional)
+}
+returns 1 if user input was valid
+otherwise returns 0
+'''
+def handleinput(turn, board, settings):
+  team = 2 - turn % 2
+  teamstring = 'white'
+  if team == 2:
+    teamstring = 'black'
+  active = settings['players'][teamstring]
+
   # tell the user whose turn it is
-  if turn % 2 == 1:
-    print('Turn ' + str(turn) + ': White to move')
-  else:
-    print('Turn ' + str(turn) + ': Black to move')
+  print('Turn ' + str(turn) + ': ' + teamstring + ' to move')
  
+  # handle ai turn
+  if active == 'ai':
+    if turn % 2 == team % 2:
+      ai = Opponent(team)
+      mv = ai.makemove(board, board.getpieces())
+      mv = mv.split()
+      print(mv)
+
   # handle input
-  mv = input()
-  mv = mv.split()
-  # ensure input has at exactly 2 terms
-  if len(mv) != 2:
-    print('Please input 2 coordinates')
-    return 0
+  if active == 'human':
+    mv = input()
+    mv = mv.split()
+    # ensure input has at exactly 2 terms
+    if len(mv) != 2:
+      print('Please input 2 coordinates')
+      return 0
   
   s = altocoord(mv[0])
   d = altocoord(mv[1])
@@ -45,7 +55,7 @@ def handleinput(turn, board):
   if movedpiece == 'o':
     print('No piece at ' + mv[0])
     return 0
-  
+
   # ensure that the piece is of the correct color
   if movedpiece.getteam() % 2 != turn % 2:
     print('Piece at ' + mv[0] + ' is of the wrong color')
@@ -71,18 +81,61 @@ def handleinput(turn, board):
       print('Check!')
   return 1
 
-def main():
-    # initialize board
-    pieces = generatepieces()
-    board = Board(pieces)
-    board.render()
-    turn = 1
+def playerprefs():
+  settings = DEFAULT_SETTINGS().copy()
 
-    # handle input
-    while(True):
-      if (turn < 0):
-        return
-      turn += handleinput(turn, board);
+  # Check if the user is playing or observing
+  while settings['observing'] == 'None':
+    print('Would you like to play or observe two AIs play?')
+    i = input('Type "play" or "observe"\n')
+    if i == 'play' or i == 'observe':
+      settings['observing'] = i
+      settings['players']['white'] = 'ai'
+      settings['players']['black'] = 'ai'
+
+  if settings['observing'] == 'observe':
+    return settings
+
+  # Check if playing against human or ai
+  while settings['opponent'] == 'None':
+    print('Would you like to play against an AI or a human?')
+    i = input('Type "ai" or "human"\n');
+    if i == 'ai' or i == 'human':
+      settings['opponent'] = i
+
+  if settings['opponent'] == 'human':
+    return settings
+
+  # if against ai, ask for player color
+  while settings['playercolor'] == 'None':
+    print('Would you like to play as white or black?')
+    i = input('Type "white" or "black" \n')
+    if i == 'white' or i == 'black':
+      settings['playercolor'] = i
+      if i == 'white':  
+        settings['players']['black'] = 'ai'
+      else:
+        settings['players']['white'] = 'ai'
+  return settings
+
+def main():
+  # Setup
+  settings = playerprefs()
+
+  # initialize board
+  pieces = generatepieces()
+  board = Board(pieces)
+  board.settings = settings
+  board.render()
+  turn = 1
+
+  # handle input
+  while(True):
+    if turn < 0:
+      return
+    if turn > 100:
+      return
+    turn += handleinput(turn, board, settings);
 
 if __name__ == '__main__':
-    main()
+  main()

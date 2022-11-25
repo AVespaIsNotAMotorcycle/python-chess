@@ -1,4 +1,6 @@
+from utils import DEFAULT_SETTINGS, altocoord, coordtoal
 from piece import Piece
+from opponent import Opponent
 
 def generatepieces():
     pieces = []
@@ -52,6 +54,7 @@ class Board:
         self.points = [0,0]
         self.enpassent = 'none'
         self.gamestate = ""
+        self.settings = DEFAULT_SETTINGS().copy()
         # castlereqs[0] = white left rook hasn't moved, king hasn't moved, right rook hasn't moved
         # castlereqs[1] = black left rook hasn't moved, king hasn't moved, right rook hasn't moved
         self.castlereqs = [[True,True,True],[True,True,True]]
@@ -113,6 +116,16 @@ class Board:
     # and a scalar d, the destination coords
     # and a piece p, the piece being moved
     def moveisvalid(self, s, d, p):
+        # check that neither s nor d are out of bounds
+        if s[0] < 1 or s[1] < 1:
+          return False
+        if s[0] > 8 or s[1] > 8:
+          return False
+        if d[0] < 1 or d[1] < 1:
+          return False
+        if d[0] > 8 or d[1] > 8:
+          return False
+
         #Pawn Exceptions
         if p.getname() == "Pawn":
             # 2 tile move
@@ -242,7 +255,15 @@ class Board:
         k = self.coordstoindex(d)
         # Pawn Promotion
         if p.getname() == "Pawn" and ((d[1] == 8 and p.getteam() == 1) or (d[1] == 1 and p.getteam() == 2)):
-            promo = input("Choose a piece:")
+            # Check if player is AI or human
+            promo = ''
+            piece_team_string = 'white'
+            if p.getteam() == 2:
+              piece_team_string = 'black'
+            if self.settings['players'][piece_team_string] == 'ai':
+              promo = Opponent(p.getteam()).promotepiece(self)
+            else:
+              promo = input("Choose a piece:")
             if p.getteam() == 1:
                 if promo.capitalize() == "Queen":
                     p = Piece("Queen",'Q',[('x',0),('x','x'),(0,'x')],1,d,9)
@@ -361,3 +382,8 @@ class Board:
     # and converts it to an integer 0 - 99
     def coordstoindex(self,c):
         return c[0] + ( c[1] * 10 )
+
+    # getpieces() method
+    # returns self.pieces
+    def getpieces(self):
+      return self.pieces

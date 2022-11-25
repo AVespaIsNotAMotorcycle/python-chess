@@ -35,7 +35,7 @@ class Piece:
     # where x is the difference in position horizontally
     # and y is the difference vertically
     def getmoves(self):
-        return self.moves
+        return self.moves.copy()
 
     # getteam() method
     # returns team
@@ -46,3 +46,9 @@ class Piece:
     # returns points
     def getpoints(self):
         return self.points
+
+    # __repr__() method
+    # returns name and coords
+    # enables print() statements
+    def __repr__(self):
+      return '<Piece ' + self.name + ', ' + str(self.coords) + '>'
