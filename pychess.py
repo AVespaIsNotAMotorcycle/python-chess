@@ -32,7 +32,6 @@ def handleinput(turn, board, settings):
       ai = Opponent(team)
       mv = ai.makemove(board, board.getpieces())
       mv = mv.split()
-      print(mv)
 
   # handle input
   if active == 'human':
@@ -90,10 +89,10 @@ def playerprefs():
     i = input('Type "play" or "observe"\n')
     if i == 'play' or i == 'observe':
       settings['observing'] = i
-      settings['players']['white'] = 'ai'
-      settings['players']['black'] = 'ai'
 
   if settings['observing'] == 'observe':
+    settings['players']['white'] = 'ai'
+    settings['players']['black'] = 'ai'
     return settings
 
   # Check if playing against human or ai
