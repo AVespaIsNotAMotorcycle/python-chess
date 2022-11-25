@@ -89,8 +89,8 @@ class Board:
     # render() method
     # outputs board state to console
     def render(self):
-        #for piece in self.pieces:
-        print(f'Points: White {self.points[0]}, Black {self.points[1]}')
+        print(' - - - - - - - - - - - - - - ')
+        # print(f'Points: White {self.points[0]}, Black {self.points[1]}')
         rstate = ''
         for index, c in enumerate(self.gamestate):
             rstate += ' ' + c + ' '
