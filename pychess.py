@@ -63,9 +63,10 @@ def handleinput(turn, board):
 
   # if it has passed all the tests above, enact move
   board.movepiece(s, d, movedpiece)
-  if board.playerincheck(turn % 2 == 1):
-    if board.playermated(turn % 2 == 1):
+  if board.playerincheck(turn % 2 + 1):
+    if board.playermated(turn % 2 + 1):
       print('Checkmate!')
+      return(-10000)
     else:
       print('Check!')
   return 1
@@ -79,6 +80,8 @@ def main():
 
     # handle input
     while(True):
+      if (turn < 0):
+        return
       turn += handleinput(turn, board);
 
 if __name__ == '__main__':
