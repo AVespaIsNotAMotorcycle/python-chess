@@ -1,6 +1,7 @@
 from utils import DEFAULT_SETTINGS, altocoord, coordtoal
 from piece import Piece
-from opponent import Opponent
+from opponents.utils import create_opponent
+from copy import deepcopy
 
 def generatepieces():
     pieces = []
@@ -214,12 +215,8 @@ class Board:
                 return True
         return False
 
-    # movepiece(s,d,p)
-    # takes a scalar s, the start coords
-    # and a scalar d, the destination coords
-    # and a piece p, the piece being moved
-    def movepiece(self, s, d, p):
-        # Castling
+    # who knows!?
+    def handlecastle(self, s, d, p):
         rf = -1
         rn = -1
         if p.getname() == "King" and abs(s[0] - d[0]) == 2 and s[1] == d[1]:
@@ -233,8 +230,9 @@ class Board:
                 rf = self.coordstoindex((1,d[1]))
                 self.fetchpiece((1,s[1]))[1].setcoords((d[0]+1,d[1]))
                 rn = self.coordstoindex((d[0]+1,d[1]))
-        # Enpassent
-        e = -1
+        return (rf, rn)
+
+    def handleenpassent(self, s, d, p, e):
         if d == self.enpassent and p.getname() == "Pawn":
             t = (d[0], d[1] + (-1 * ((2 * (p.getteam() % 2)) - 1)))
             e = self.coordstoindex(t)
@@ -250,10 +248,9 @@ class Board:
         if self.fetchpiece(d) != 'none':
             self.points[p.getteam() - 1] += self.fetchpiece(d)[1].getpoints()
             self.pieces.pop(self.fetchpiece(d)[0])
-        p.setcoords(d)
-        i = self.coordstoindex(s)
-        k = self.coordstoindex(d)
-        # Pawn Promotion
+        return e
+
+    def handlepromo(self, s, d, p):
         if p.getname() == "Pawn" and ((d[1] == 8 and p.getteam() == 1) or (d[1] == 1 and p.getteam() == 2)):
             # Check if player is AI or human
             promo = ''
@@ -261,7 +258,7 @@ class Board:
             if p.getteam() == 2:
               piece_team_string = 'black'
             if self.settings['players'][piece_team_string] != 'human':
-              promo = Opponent(p.getteam()).promotepiece(self)
+              promo = create_opponent(p.getteam()).promotepiece(self)
             else:
               promo = input("Choose a piece:")
             if p.getteam() == 1:
@@ -282,9 +279,13 @@ class Board:
                     p = Piece("Bishop",'b',[('x','x')],2,d,3)
                 if promo.capitalize() == "Knight":
                     p = Piece("Knight",'n',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],2,d,3)
+
+    def updategamestate(self, s, d, p, e, rf, rn):
+        s_index = self.coordstoindex(s)
+        d_index = self.coordstoindex(d)
         ngs = ""
         for c in range(len(self.gamestate)):
-            if c == i:
+            if c == s_index:
                 if s[0] % 2 == s[1] % 2:
                     ngs += '-'
                 else:
@@ -299,14 +300,59 @@ class Board:
                     ngs += '-'
                 else:
                     ngs += ' '
-            elif c == k:
+            elif c == d_index:
                 ngs += p.geticon()
             elif c == rn:
                 ngs += self.fetchpiece(self.indextocoords(rn))[1].geticon()
             else:
                 ngs += self.gamestate[c]
         self.gamestate = ngs
-        self.render()
+
+    # movepiece(s,d,p)
+    # takes a scalar s, the start coords
+    # and a scalar d, the destination coords
+    # and a piece p, the piece being moved
+    # I wrote this and its constituent functions
+    # a year ago all as one function. I've broken
+    # them up but I do not understand them.
+    def movepiece(self, s, d, p):
+        np = self.fetchpiece(s)[1]
+        capture_target_index = -1
+        # Castling
+        castle_swap = self.handlecastle(s, d, np)
+        # Enpassent
+        capture_target_index = self.handleenpassent(s, d, np, capture_target_index)
+        # Enact move
+        np.setcoords(d)
+        # i = self.coordstoindex(s)
+        # k = self.coordstoindex(d)
+        s_index = self.coordstoindex(s)
+        d_index = self.coordstoindex(d)
+        # Pawn Promotion
+        self.handlepromo(s, d, np)
+        # Set new gamestate
+        self.updategamestate(s, d, np, capture_target_index, castle_swap[0], castle_swap[1])
+
+    # mockmove(s,d,p)
+    # creates a new Board and return that Board's
+    # pieces after running a move on it
+    def mockmove(self,s,d,p):
+      selfteam = p.getteam()
+      oppteam = 3 - selfteam
+      mockpiece = deepcopy(p)
+      mockpieces = deepcopy(self.getpieces())
+      fboard = Board(mockpieces)
+      fboard.movepiece(s,d,mockpiece)
+      matestatus = 'none'
+      if fboard.playerincheck(selfteam):
+        matestatus = 'self_check'
+      if fboard.playermated(selfteam):
+        matestatus = 'self_mate'
+      if fboard.playerincheck(oppteam):
+        matestatus = 'opp_check'
+      if fboard.playermated(oppteam):
+        matestatus = 'opp_mate'
+      return (fboard.getpieces(), matestatus)
 
     # resultsincheck(s,d,p) method
     # computes an otherwise valid move
@@ -386,4 +432,9 @@ class Board:
     # getpieces() method
     # returns self.pieces
     def getpieces(self):
-      return self.pieces
+      return self.pieces.copy()
+
+    # getstate() method
+    # returns self.gamestate
+    def getstate(self):
+      return self.gamestate

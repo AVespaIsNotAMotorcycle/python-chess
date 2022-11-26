@@ -6,13 +6,15 @@ def DEFAULT_SETTINGS():
     'players': {
       'white': 'human',
       'black': 'human',
-    }
+    },
+    'maxturns': 200
   }
   return default_settings
 
 def AI_LIST():
   ai_list = [
     'random',
+    'boardstate_heuristic',
   ]
   return ai_list
 

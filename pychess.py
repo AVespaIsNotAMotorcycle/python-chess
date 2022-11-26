@@ -1,7 +1,7 @@
 from utils import DEFAULT_SETTINGS, AI_LIST, altocoord, coordtoal
 from piece import Piece
 from board import Board, generatepieces
-from opponent import Opponent
+from opponents.utils import create_opponent
 import sys
 
 '''
@@ -29,8 +29,9 @@ def handleinput(turn, board, settings):
   # handle ai turn
   if active != 'human':
     if turn % 2 == team % 2:
-      ai = Opponent(team)
+      ai = create_opponent(team, active)
       mv = ai.makemove(board, board.getpieces())
+      print(mv)
       mv = mv.split()
 
   # handle input
@@ -146,9 +147,10 @@ def playergame(settings, board):
   while(True):
     if turn < 0:
       return
-    if turn > 100:
+    if turn > settings['maxturns']:
       return
     turn += handleinput(turn, board, settings);
+    board.render()
 
 def observergame(settings, board):
   board.render()
@@ -158,9 +160,10 @@ def observergame(settings, board):
   while(True):
     if turn < 0:
       return
-    if turn > 100:
+    if turn > settings['maxturns']:
       return
     turn += handleinput(turn, board, settings);
+    board.render()
 
 def tournamentgame(settings, board):
   print('tournament')
@@ -199,6 +202,8 @@ def main(argv):
       print('set player 2 to ' + argv[i + 1])
 
   settings = playerprefs(settings)
+
+  print(settings)
 
   # initialize board
   pieces = generatepieces()
