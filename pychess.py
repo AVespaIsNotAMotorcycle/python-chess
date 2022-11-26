@@ -1,8 +1,8 @@
-from utils import DEFAULT_SETTINGS, altocoord, coordtoal
+from utils import DEFAULT_SETTINGS, AI_LIST, altocoord, coordtoal
 from piece import Piece
 from board import Board, generatepieces
 from opponent import Opponent
-
+import sys
 
 '''
 handles user input given a turn number 'turn'
@@ -10,7 +10,7 @@ and a boardstate 'board'
 and a dictionary 'settings'
 of form:
 {
-  opponent: ai || human (required)
+  opponent: {ai_name} || human (required)
   playercolor: white || black (optional)
 }
 returns 1 if user input was valid
@@ -27,7 +27,7 @@ def handleinput(turn, board, settings):
   print('Turn ' + str(turn) + ': ' + teamstring + ' to move')
  
   # handle ai turn
-  if active == 'ai':
+  if active != 'human':
     if turn % 2 == team % 2:
       ai = Opponent(team)
       mv = ai.makemove(board, board.getpieces())
@@ -80,9 +80,7 @@ def handleinput(turn, board, settings):
       print('Check!')
   return 1
 
-def playerprefs():
-  settings = DEFAULT_SETTINGS().copy()
-
+def playerprefs(settings = DEFAULT_SETTINGS().copy()):
   # Check if the user is playing or observing
   while settings['observing'] == 'None':
     print('Would you like to play or observe two AIs play?')
@@ -90,7 +88,7 @@ def playerprefs():
     if i == 'play' or i == 'observe':
       settings['observing'] = i
 
-  if settings['observing'] == 'observe':
+  if settings['observing'] == 'observe' or settings['observing'] == 'tournament':
     settings['players']['white'] = 'ai'
     settings['players']['black'] = 'ai'
     return settings
@@ -115,16 +113,32 @@ def playerprefs():
         settings['players']['black'] = 'ai'
       else:
         settings['players']['white'] = 'ai'
+
+  # if white is ai, ask for ai name
+  while settings['players']['white'] == 'ai':
+    print('What AI should play as white?')
+    ai_list = AI_LIST()
+    ai_str = 'Choose from: '
+    for ai in ai_list:
+      ai_str += '\n"' + ai + '"'
+    i = input(ai_str + '\n')
+    if ai_list.count(i) > 0:
+      settings['players']['white'] = i
+
+  # if black is ai, ask for ai name
+  while settings['players']['black'] == 'ai':
+    print('What AI should play as black?')
+    ai_list = AI_LIST()
+    ai_str = 'Choose from: '
+    for ai in ai_list:
+      ai_str += '\n"' + ai + '"'
+    i = input(ai_str + '\n')
+    if ai_list.count(i) > 0:
+      settings['players']['black'] = i
+
   return settings
 
-def main():
-  # Setup
-  settings = playerprefs()
-
-  # initialize board
-  pieces = generatepieces()
-  board = Board(pieces)
-  board.settings = settings
+def playergame(settings, board):
   board.render()
   turn = 1
 
@@ -136,5 +150,67 @@ def main():
       return
     turn += handleinput(turn, board, settings);
 
+def observergame(settings, board):
+  board.render()
+  turn = 1
+
+  # handle input
+  while(True):
+    if turn < 0:
+      return
+    if turn > 100:
+      return
+    turn += handleinput(turn, board, settings);
+
+def tournamentgame(settings, board):
+  print('tournament')
+
+def main(argv):
+  # Setup
+  settings = DEFAULT_SETTINGS().copy()
+ 
+  ## Determine game type 
+  gametype = 'player'
+  if argv.count('-p') > 0:
+    gametype = 'player'
+    settings['observing'] = 'play'
+  if argv.count('-o') > 0:
+    gametype = 'observer'
+    settings['observing'] = 'observe'
+  if argv.count('-t') > 0:
+    gametype = 'tournament'
+    settings['observing'] = 'tournament'
+    settings['playercolor'] = 'tournament'
+
+  ## Determine AI Opponent
+  if argv.count('p1') > 0:
+    i = argv.index('p1')
+    if AI_LIST().count(argv[i + 1]) > 0:
+      settings['opponent'] = 'ai'
+      settings['playercolor'] = 'black'
+      settings['players']['white'] = argv[i + 1]
+      print('set player 1 to ' + argv[i + 1])
+  if argv.count('p2') > 0:
+    i = argv.index('p2')
+    if AI_LIST().count(argv[i + 1]) > 0:
+      settings['opponent'] = 'ai'
+      settings['playercolor'] = 'white'
+      settings['players']['black'] = argv[i + 1]
+      print('set player 2 to ' + argv[i + 1])
+
+  settings = playerprefs(settings)
+
+  # initialize board
+  pieces = generatepieces()
+  board = Board(pieces)
+  board.settings = settings
+
+  if gametype == 'player':
+    playergame(settings, board)
+  if gametype == 'observer':
+    observergame(settings, board)
+  if gametype == 'tournament':
+    tournamentgame(settings, board)
+
 if __name__ == '__main__':
-  main()
+  main(sys.argv)

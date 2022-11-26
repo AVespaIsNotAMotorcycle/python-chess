@@ -10,6 +10,12 @@ def DEFAULT_SETTINGS():
   }
   return default_settings
 
+def AI_LIST():
+  ai_list = [
+    'random',
+  ]
+  return ai_list
+
 # converts chessboard notation to coordinates
 def altocoord(i):
   # check that i is str of len 2

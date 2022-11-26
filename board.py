@@ -260,7 +260,7 @@ class Board:
             piece_team_string = 'white'
             if p.getteam() == 2:
               piece_team_string = 'black'
-            if self.settings['players'][piece_team_string] == 'ai':
+            if self.settings['players'][piece_team_string] != 'human':
               promo = Opponent(p.getteam()).promotepiece(self)
             else:
               promo = input("Choose a piece:")
