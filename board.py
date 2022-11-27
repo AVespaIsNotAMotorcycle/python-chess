@@ -2,7 +2,268 @@ from utils import DEFAULT_SETTINGS, altocoord, coordtoal
 from piece import Piece
 from opponents.utils import create_opponent
 from copy import deepcopy
+import numpy
 
+class Board:
+
+  def __init__(self, pieces, settings = DEFAULT_SETTINGS().copy()):
+      self.pieces = pieces
+      self.settings = settings
+      # A log of all moves made on this board
+      # (s, d, p)
+      self.moves = []
+
+  # render() method
+  # outputs board state to console
+  def render(self):
+    s = ''
+    s += '# a b c d e f g h #\n'
+    s += '1 -   -   -   -   #\n'
+    s += '2   -   -   -   - #\n'
+    s += '3 -   -   -   -   #\n'
+    s += '4   -   -   -   - #\n'
+    s += '5 -   -   -   -   #\n'
+    s += '6   -   -   -   - #\n'
+    s += '7 -   -   -   -   #\n'
+    s += '8   -   -   -   - #\n'
+    s += '# # # # # # # # # #\n'
+    for piece in self.pieces:
+      i = self.coordstoindex(piece.getcoords())
+      a = s[0:i]
+      p = s[i + 1:]
+      s = a + piece.geticon() + p
+    print(s)
+
+  # fetchpiece(c)
+  # takes a scalar c = (x,y)
+  # where x and y are both integers 0 - 9
+  # and return any piece found at those coords
+  def fetchpiece(self, c):
+    for piece in self.pieces:
+      if piece.getcoords() == c:
+        return piece
+    return 'none'
+
+  # moveinrange(s,d,p)
+  # s: scalar (x,y) representing starting tile
+  # d: scalar (x,y) representing destination tile
+  # p: Piece to be moved
+  def moveinrange(self,s,d,p):
+    moves = p.getmoves()
+    for mv in moves:
+      # Variable distance moves
+      if mv[0] == 'x' or mv[1] == 'x':
+        for delta in range(1,9):
+          if mv[0] == 'x' and mv[1] == 'x':
+            moves.append((delta,delta))
+          elif mv[0] == 'x':
+            moves.append((delta,mv[1]))
+          else:
+            moves.append((mv[0],delta))
+          continue
+      # Constant distance moves
+      else:
+        comp_d = (s[0] + mv[0], s[1] + mv[1])
+        if comp_d == d:
+          return True
+    return False
+
+  # cancapture(s,d,p)
+  # s: scalar (x,y) representing starting tile
+  # d: scalar (x,y) representing destination tile
+  # p: piece to be moved
+  # Returns bool indicating whether d is occupied by
+  # a friendly piece
+  # Does not factor in whether the piece can actually
+  # otherwise move to that tile
+  def cancapture(self,s,d,p):
+    dpiece = self.fetchpiece(d)
+    if dpiece == 'none':
+      return True
+    if dpiece.getteam() != p.getteam():
+      return True
+    return False
+
+  # A valid capture must be
+  # - diagonal
+  # - of distance 1
+  # - in the vertical direction of a normal move
+  # An enpassent capture is legal if
+  # - an enemy pawn is directly adjacent to this pawn
+  # - that pawn just moved 2 tiles
+  def validpawncapture(self,s,d,p):
+    # Check that move is valid
+    sign = numpy.sign(p.getmoves()[0][1])
+    delta = (d[0] - s[0], d[1] - s[1])
+    # If travelling in wrong vertical direction
+    # or distance travelled > 1
+    if delta[1] != sign:
+      return False
+    # If horizontal distance != 1
+    if not (delta[0] == 1 or delta[0] == -1):
+      return False
+    # If piece at d, return True
+    if self.fetchpiece(d) != 'none':
+      return True
+    # If not piece at d, check if enpassent is valid
+    # Last moved piece must have been an enemy pawn
+    if self.moves[-1][2].getname() != 'Pawn':
+      return False
+    # Enemy pawn piece must have moved 2 tiles
+    if abs(self.moves[-1][0][1] - self.moves[-1][1][1]) != 2:
+      return False
+    # Enemy pawn must have moved adjacent to this pawn
+    left = self.fetchpiece((s[0] - 1, s[1]))
+    right = self.fetchpiece((s[0] + 1, s[1]))
+    if not (left == self.moves[-1][2] or right == self.moves[-1][2]):
+      return False
+    return True
+
+  # validcastle(s,d,p)
+  def validcastle(self,s,d,p):
+    return False
+
+  # moveisvalid(s,d,p)
+  # takes a scalar s, the start coords
+  # and a scalar d, the destination coords
+  # and a piece p, the piece being moved
+  # and a bool c, True by default, which determines
+  # whether to check if the move would put you in check
+  # returns true if a piece would be allowed to make the move
+  def moveisvalid(self, s, d, p, c = True):
+    # Check that move is in range
+    inrange = self.moveinrange(s,d,p)
+    if not inrange and not (p.getname() == 'King' or p.getname() == 'Pawn'):
+      # Pawn captures and castline would both
+      # be legal but not inrange
+      return False
+
+    # Check that the target tile is either empty
+    # or contains a capturable piece
+    cancapture = self.cancapture(s,d,p)
+    if not cancapture and not (p.getname() == 'King'):
+      # For kings, castling is an exception,
+      # as, to make input simpler, I'm breaking from
+      # algebraic notation for castling input
+      # algebraic notation is o-o or o-o-o,
+      # but that's annoying to parse
+      return False
+
+    # If piece is pawn, check whether it is capturing a piece
+    # and if it is a valid capture
+    if p.getname() == 'Pawn' and not inrange:
+      pawncancapture = self.validpawncapture(s,d,p)
+      if not pawncancapture:
+        return False
+
+    # If piece is king, check whether it is castling
+    # and if it is a valid castle
+    if p.getname() == 'King' and not inrange:
+      validcastle = self.validcastle(s,d,p)
+      if not validcastle:
+        return False
+
+    # Check that move does not result in check
+    if c:
+      if self.resultsincheck(s,d,p):
+        return False
+
+    return True
+
+    # who knows!?
+  def handlecastle(self, s, d, p):
+    return
+
+  def handleenpassent(self, s, d, p):
+    return
+
+  def handlepromo(self, s, d, p):
+    return
+
+  # movepiece(s,d,p)
+  # takes a scalar s, the start coords
+  # and a scalar d, the destination coords
+  # and a piece p, the piece being moved
+  # I wrote this and its constituent functions
+  # a year ago all as one function. I've broken
+  # them up but I do not understand them.
+  def movepiece(self, s, d, p):
+    # Castling
+    # Enpassent
+    # Enact move
+    self.moves.append((s,d,p))
+    p.setcoords(d)
+    # Pawn Promotion
+    return
+
+  # mockmove(s,d,p)
+  # creates a new board and returns
+  # that board's pieces after performing
+  # a move
+  def mockmove(self,s,d,p):
+    return
+
+  # resultsincheck(s,d,p) method
+  # computes an otherwise valid move
+  # to see if it would result in that
+  # player being in check
+  def resultsincheck(self,s,d,p):
+    # Find king
+    k = self.pieces[0]
+    for piece in self.pieces:
+      if piece.getname() == 'King' and piece.getteam() == p.getteam():
+        k = piece
+        break
+    if k.getname() != 'King':
+      return False
+    # See if opposing team can find king
+    for piece in self.pieces:
+      if piece.getteam() != p.getteam():
+        if self.moveisvalid(piece.getcoords(),k.getcoords(),piece,False):
+          return True
+    return False
+
+  # playerincheck(p) method
+  # returns whether a player p is currently in check
+  def playerincheck(self,p):
+    return False
+
+  # playermated(p) method
+  # returns whether a player p is in checkmate
+  def playermated(self,p):
+    return False
+
+  # indextocoords(i) method
+  # takes an int 0 - 99
+  # and converts it to a scalar (x,y)
+  def indextocoords(self,i):
+    if i > 9:
+      y = int(str(i)[0])
+      x = int(str(i)[1])
+      return (x,y)
+    else:
+      return (i, 0)
+
+  # coordstoindex(c) method
+  # takes a scalar c = (x,y)
+  # where x and y are both integers 0 - 9
+  # and converts it to an integer 0 - 99
+  def coordstoindex(self,c):
+    # length 19?
+    return (2 * c[0]) + ( c[1] * 20 )
+
+  # getpieces() method
+  # returns self.pieces
+  def getpieces(self):
+    return self.pieces.copy()
+
+  # getstate() method
+  # returns self.gamestate
+  def getstate(self):
+    return self.gamestate
+
+# Create list of Piece objects in correct positions
+# for a starting boardstate
 def generatepieces():
     pieces = []
 
@@ -17,14 +278,14 @@ def generatepieces():
     pieces.append(Piece("Knight",'N',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],1,(7,1),3))
     pieces.append(Piece("Rook",'R',[('x',0),(0,'x')],1,(8,1),5))
     # Pawns
-    pieces.append(Piece("Pawn",'P',[(0,1)],1,(1,2),1))
-    pieces.append(Piece("Pawn",'P',[(0,1)],1,(2,2),1))
-    pieces.append(Piece("Pawn",'P',[(0,1)],1,(3,2),1))
-    pieces.append(Piece("Pawn",'P',[(0,1)],1,(4,2),1))
-    pieces.append(Piece("Pawn",'P',[(0,1)],1,(5,2),1))
-    pieces.append(Piece("Pawn",'P',[(0,1)],1,(6,2),1))
-    pieces.append(Piece("Pawn",'P',[(0,1)],1,(7,2),1))
-    pieces.append(Piece("Pawn",'P',[(0,1)],1,(8,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1),(0,2)],1,(1,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1),(0,2)],1,(2,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1),(0,2)],1,(3,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1),(0,2)],1,(4,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1),(0,2)],1,(5,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1),(0,2)],1,(6,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1),(0,2)],1,(7,2),1))
+    pieces.append(Piece("Pawn",'P',[(0,1),(0,2)],1,(8,2),1))
 
     # Black
     # Major Pieces
@@ -37,395 +298,13 @@ def generatepieces():
     pieces.append(Piece("Knight",'n',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],2,(7,8),3))
     pieces.append(Piece("Rook",'r',[('x',0),(0,'x')],2,(8,8),5))
     # Pawns
-    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(1,7),1))
-    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(2,7),1))
-    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(3,7),1))
-    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(4,7),1))
-    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(5,7),1))
-    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(6,7),1))
-    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(7,7),1))
-    pieces.append(Piece("Pawn",'p',[(0,-1)],2,(8,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1),(0,-2)],2,(1,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1),(0,-2)],2,(2,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1),(0,-2)],2,(3,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1),(0,-2)],2,(4,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1),(0,-2)],2,(5,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1),(0,-2)],2,(6,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1),(0,-2)],2,(7,7),1))
+    pieces.append(Piece("Pawn",'p',[(0,-1),(0,-2)],2,(8,7),1))
 
     return pieces
-
-class Board:
-
-    def __init__(self,pieces):
-        self.pieces = pieces
-        self.points = [0,0]
-        self.enpassent = 'none'
-        self.gamestate = ""
-        self.settings = DEFAULT_SETTINGS().copy()
-        # castlereqs[0] = white left rook hasn't moved, king hasn't moved, right rook hasn't moved
-        # castlereqs[1] = black left rook hasn't moved, king hasn't moved, right rook hasn't moved
-        self.castlereqs = [[True,True,True],[True,True,True]]
-        for i in range(100):
-            # Borders
-            if i < 9:
-                if i == 0:
-                    self.gamestate += '#'
-                else:
-                    self.gamestate += chr(i + 96)
-            elif i % 10 == 0:
-                if i == 90:
-                    self.gamestate += '#'
-                else:
-                    self.gamestate += str(i)[0]
-            elif i % 10 == 9:
-                self.gamestate += '#'
-            elif i >= 90:
-                self.gamestate += '#'
-
-            # Content
-            else:
-                pieceplaced = False
-                for piece in pieces:
-                    if piece.getcoords() == self.indextocoords(i):
-                        self.gamestate += piece.geticon()
-                        pieceplaced = True
-                if not pieceplaced:
-                    if (i + int(str(i)[0])) % 2 == 0:
-                        self.gamestate += '-'
-                    else:
-                        self.gamestate += ' '
-
-
-    # render() method
-    # outputs board state to console
-    def render(self):
-        print(' - - - - - - - - - - - - - - ')
-        # print(f'Points: White {self.points[0]}, Black {self.points[1]}')
-        rstate = ''
-        for index, c in enumerate(self.gamestate):
-            rstate += ' ' + c + ' '
-            if index % 10 == 9:
-                rstate += '\n'
-        print(rstate)
-
-    # fetchpiece(c)
-    # takes a scalar c = (x,y)
-    # where x and y are both integers 0 - 9
-    # and return any piece found at those coords
-    def fetchpiece(self, c):
-        for index, piece in enumerate(self.pieces):
-            if piece.getcoords() == c:
-                return (index, piece)
-        return 'none'
-
-    # moveisvalid(s,d,p)
-    # takes a scalar s, the start coords
-    # and a scalar d, the destination coords
-    # and a piece p, the piece being moved
-    def moveisvalid(self, s, d, p):
-        # check that neither s nor d are out of bounds
-        if s[0] < 1 or s[1] < 1:
-          return False
-        if s[0] > 8 or s[1] > 8:
-          return False
-        if d[0] < 1 or d[1] < 1:
-          return False
-        if d[0] > 8 or d[1] > 8:
-          return False
-
-        #Pawn Exceptions
-        if p.getname() == "Pawn":
-            # 2 tile move
-            if abs(d[1] - s[1]) == 2 and s[0] == d[0]:
-                if d[0] != s[0]:
-                    return False
-                if p.getteam() == 1:
-                    if s[1] == 2 and d[1] == 4 and self.fetchpiece((d[0],d[1]-1)) == 'none' and self.fetchpiece(d) == 'none':
-                        # enable en passent
-                        return True
-                else:
-                    if s[1] == 7 and d[1] == 5 and self.fetchpiece((d[0],d[1] + 1)) == 'none' and self.fetchpiece(d) == 'none':
-                        #enable en passent
-                        return True
-            # Capturing
-            elif self.fetchpiece(d) != 'none' and abs(s[0] - d[0]) == 1 and s[1] - d[1] == -1 * (2 * (p.getteam() % 2) - 1):
-                return True
-            # Standard move
-            elif s[0] - d[0] == 0 and s[1] - d[1] == -1 * (2 * (p.getteam() % 2) - 1) and self.fetchpiece(d) == 'none':
-                return True
-            # En passent
-            elif d == self.enpassent and abs(s[0] - d[0]) == 1 and s[1] - d[1] == -1 * (2 * (p.getteam() % 2) - 1):
-                return True
-            else:
-                return False
-
-        # King exceptions
-        if p.getname() == "King" and s[1] == d[1] and ((d[0] == s[0] - 2 and self.castlereqs[p.getteam() - 1][0] and self.castlereqs[p.getteam() - 1][1]) or (d[0] == s[0] + 2 and self.castlereqs[p.getteam() - 1][1] and self.castlereqs[p.getteam() - 1][2])):
-            if d[0] == s[0] + 2 and self.fetchpiece((s[0] + 1,s[1])) == 'none' and self.fetchpiece((s[0] + 2,s[1])) == 'none' and self.fetchpiece((s[0] + 3,s[1])) == 'none':
-                return True
-            elif d[0] == s[0] - 2 and self.fetchpiece((s[0] - 1,s[1])) == 'none' and self.fetchpiece((s[0] - 2,s[1])) == 'none' and self.fetchpiece((s[0] - 3,s[1])) == 'none' and self.fetchpiece((s[0] - 4, s[1])):
-                return True
-            else:
-                return False
-
-        if d[0] < 1 or d[0] > 8 or d[1] < 1 or d[1] > 8:
-            return False
-        moves = p.getmoves()
-        if self.fetchpiece(d) != 'none' and self.fetchpiece(d)[1].getteam() == p.getteam():
-            return False
-        for move in moves:
-            # Check diagonal moves
-            if move == ('x','x') and abs(s[0] - d[0]) == abs(s[1] - d[1]):
-                tracker = s
-                cx = 1
-                cy = 1
-                if d[0] < s[0]:
-                    cx = -1
-                if d[1] < s[1]:
-                    cy = -1
-                while tracker != d:
-                    tracker = (tracker[0] + cx, tracker[1] + cy)
-                    if tracker == d:
-                        return True
-                    else:
-                        if self.fetchpiece(tracker) != 'none' or self.coordstoindex(tracker) > 89 or self.coordstoindex(tracker) < 9:
-                            break
-            # Check horizontal moves
-            elif move == ('x',0) and (s[1] - d[1]) == 0:
-                tracker = s
-                coeff = 1
-                if (s[0] - d[0]) > 0:
-                    coeff = -1
-                while tracker != d:
-                    tracker = (tracker[0] + (1 * coeff), tracker[1])
-                    if tracker == d:
-                        return True
-                    else:
-                        if self.fetchpiece(tracker) != 'none' or self.coordstoindex(tracker) > 89 or self.coordstoindex(tracker) < 9:
-                            break
-            # Check vertical moves
-            elif move == (0,'x') and (s[0] - d[0]) == 0:
-                tracker = s
-                coeff = 1
-                if (s[1] - d[1]) > 0:
-                    coeff = -1
-                while tracker != d:
-                    tracker = (tracker[0], tracker[1] + (1 * coeff))
-                    if tracker == d:
-                        return True
-                    else:
-                        if self.fetchpiece(tracker) != 'none' or self.coordstoindex(tracker) > 89 or self.coordstoindex(tracker) < 9:
-                            break
-            # Check bounded moves
-            elif move == (d[0] - s[0],d[1] - s[1]):
-                return True
-        return False
-
-    # who knows!?
-    def handlecastle(self, s, d, p):
-        rf = -1
-        rn = -1
-        if p.getname() == "King" and abs(s[0] - d[0]) == 2 and s[1] == d[1]:
-            self.castlereqs[p.getteam() - 1] = (False, False, False)
-            p.setcoords(d)
-            if d[0] > s[0]:
-                rf = self.coordstoindex((8,d[1]))
-                self.fetchpiece((8,s[1]))[1].setcoords((d[0]-1,d[1]))
-                rn = self.coordstoindex((d[0]-1,d[1]))
-            else:
-                rf = self.coordstoindex((1,d[1]))
-                self.fetchpiece((1,s[1]))[1].setcoords((d[0]+1,d[1]))
-                rn = self.coordstoindex((d[0]+1,d[1]))
-        return (rf, rn)
-
-    def handleenpassent(self, s, d, p, e):
-        if d == self.enpassent and p.getname() == "Pawn":
-            t = (d[0], d[1] + (-1 * ((2 * (p.getteam() % 2)) - 1)))
-            e = self.coordstoindex(t)
-            self.points[p.getteam() - 1] += self.fetchpiece(t)[1].getpoints()
-            self.pieces.pop(self.fetchpiece(t)[0])
-        elif p.getname() == "Pawn" and abs(s[1] - d[1]) == 2:
-            if s[1] < d[1]:
-                self.enpassent = (d[0],d[1] - 1)
-            else:
-                self.enpassent = (d[0],d[1] + 1)
-        else:
-            self.enpassent = 'none'
-        if self.fetchpiece(d) != 'none':
-            self.points[p.getteam() - 1] += self.fetchpiece(d)[1].getpoints()
-            self.pieces.pop(self.fetchpiece(d)[0])
-        return e
-
-    def handlepromo(self, s, d, p):
-        if p.getname() == "Pawn" and ((d[1] == 8 and p.getteam() == 1) or (d[1] == 1 and p.getteam() == 2)):
-            # Check if player is AI or human
-            promo = ''
-            piece_team_string = 'white'
-            if p.getteam() == 2:
-              piece_team_string = 'black'
-            if self.settings['players'][piece_team_string] != 'human':
-              promo = create_opponent(p.getteam()).promotepiece(self)
-            else:
-              promo = input("Choose a piece:")
-            if p.getteam() == 1:
-                if promo.capitalize() == "Queen":
-                    p = Piece("Queen",'Q',[('x',0),('x','x'),(0,'x')],1,d,9)
-                if promo.capitalize() == "Rook":
-                    p = Piece("Rook",'R',[('x',0),(0,'x')],1,d,5)
-                if promo.capitalize() == "Bishop":
-                    p = Piece("Bishop",'B',[('x','x')],1,d,3)
-                if promo.capitalize() == "Knight":
-                    p = Piece("Knight",'N',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],1,d,3)
-            if p.getteam() == 2:
-                if promo.capitalize() == "Queen":
-                    p = Piece("Queen",'q',[('x',0),('x','x'),(0,'x')],2,d,9)
-                if promo.capitalize() == "Rook":
-                    p = Piece("Rook",'r',[('x',0),(0,'x')],2,d,5)
-                if promo.capitalize() == "Bishop":
-                    p = Piece("Bishop",'b',[('x','x')],2,d,3)
-                if promo.capitalize() == "Knight":
-                    p = Piece("Knight",'n',[(-2,-1),(-2,1),(-1,-2),(-1,2),(1,-2),(1,2),(2,-1),(2,1)],2,d,3)
-
-    def updategamestate(self, s, d, p, e, rf, rn):
-        s_index = self.coordstoindex(s)
-        d_index = self.coordstoindex(d)
-        ngs = ""
-        for c in range(len(self.gamestate)):
-            if c == s_index:
-                if s[0] % 2 == s[1] % 2:
-                    ngs += '-'
-                else:
-                    ngs += ' '
-            elif c == e:
-                if self.indextocoords(e)[0] % 2 == self.indextocoords(e)[1] % 2:
-                    ngs += '-'
-                else:
-                    ngs += ' '
-            elif c == rf:
-                if self.indextocoords(rf)[0] % 2 == self.indextocoords(rf)[1] % 2:
-                    ngs += '-'
-                else:
-                    ngs += ' '
-            elif c == d_index:
-                ngs += p.geticon()
-            elif c == rn:
-                ngs += self.fetchpiece(self.indextocoords(rn))[1].geticon()
-            else:
-                ngs += self.gamestate[c]
-        self.gamestate = ngs
-
-    # movepiece(s,d,p)
-    # takes a scalar s, the start coords
-    # and a scalar d, the destination coords
-    # and a piece p, the piece being moved
-    # I wrote this and its constituent functions
-    # a year ago all as one function. I've broken
-    # them up but I do not understand them.
-    def movepiece(self, s, d, p):
-        np = self.fetchpiece(s)[1]
-        capture_target_index = -1
-        # Castling
-        castle_swap = self.handlecastle(s, d, np)
-        # Enpassent
-        capture_target_index = self.handleenpassent(s, d, np, capture_target_index)
-        # Enact move
-        np.setcoords(d)
-        # i = self.coordstoindex(s)
-        # k = self.coordstoindex(d)
-        s_index = self.coordstoindex(s)
-        d_index = self.coordstoindex(d)
-        # Pawn Promotion
-        self.handlepromo(s, d, np)
-        # Set new gamestate
-        self.updategamestate(s, d, np, capture_target_index, castle_swap[0], castle_swap[1])
-
-    # mockmove(s,d,p)
-    # creates a new Board and return that Board's
-    # pieces after running a move on it
-    def mockmove(self,s,d,p):
-      selfteam = p.getteam()
-      oppteam = 3 - selfteam
-      mockpiece = deepcopy(p)
-      mockpieces = deepcopy(self.getpieces())
-      fboard = Board(mockpieces)
-      fboard.movepiece(s,d,mockpiece)
-      matestatus = 'none'
-      if fboard.playerincheck(selfteam):
-        matestatus = 'self_check'
-      if fboard.playermated(selfteam):
-        matestatus = 'self_mate'
-      if fboard.playerincheck(oppteam):
-        matestatus = 'opp_check'
-      if fboard.playermated(oppteam):
-        matestatus = 'opp_mate'
-      return (fboard.getpieces(), matestatus)
-
-    # resultsincheck(s,d,p) method
-    # computes an otherwise valid move
-    # to see if it would result in that
-    # player being in check
-    def resultsincheck(self,s,d,p):
-      mock = Board(deepcopy(self.getpieces()))
-      mock.movepiece(s,d,p)
-      mpieces = mock.getpieces()
-      # Find king
-      team = p.getteam()
-      king = mpieces[1]
-      for piece in mpieces:
-        if piece.getname() == 'King' and piece.getteam() == team:
-          king = piece
-          break
-      # Can only be in check if king exists
-      if king.getname() != 'King':
-        return False
-      # Check whether opposing pieces can reach king
-      for piece in mpieces:
-        if mock.moveisvalid(piece.getcoords(), king.getcoords(), piece):
-          return True
-      return False
-
-    # playerincheck(p) method
-    # returns whether a player p is currently in check
-    def playerincheck(self,p):
-        tk = self.pieces[0]
-        for index, piece in enumerate(self.pieces):
-            if piece.getname() == 'King' and piece.getteam() == p:
-                tk = piece
-                break
-        for index, piece in enumerate(self.pieces):
-            if self.moveisvalid(piece.getcoords(), tk.getcoords(), piece):
-                return True
-        return False
-
-    # playermated(p) method
-    # returns whether a player p is in checkmate
-    def playermated(self,p):
-        for index, piece in enumerate(self.pieces):
-            if piece.getteam() == p:
-                for i in range(99):
-                    if self.moveisvalid(piece.getcoords(), self.indextocoords(i),piece):
-                        if not self.resultsincheck(piece.getcoords(),self.indextocoords(i),piece):
-                            return False
-        return True
-
-    # indextocoords(i) method
-    # takes an int 0 - 99
-    # and converts it to a scalar (x,y)
-    def indextocoords(self,i):
-        if i > 9:
-            y = int(str(i)[0])
-            x = int(str(i)[1])
-            return (x,y)
-        else:
-            return (i, 0)
-
-    # coordstoindex(c) method
-    # takes a scalar c = (x,y)
-    # where x and y are both integers 0 - 9
-    # and converts it to an integer 0 - 99
-    def coordstoindex(self,c):
-        return c[0] + ( c[1] * 10 )
-
-    # getpieces() method
-    # returns self.pieces
-    def getpieces(self):
-      return self.pieces.copy()
-
-    # getstate() method
-    # returns self.gamestate
-    def getstate(self):
-      return self.gamestate

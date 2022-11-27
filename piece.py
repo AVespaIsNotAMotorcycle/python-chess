@@ -7,6 +7,7 @@ class Piece:
         self.team = team
         self.coords = coords
         self.points = points
+        self.lastcoords = coords
 
     # getname() method
     # returns name
@@ -17,12 +18,18 @@ class Piece:
     # takes a scalar c, the new coords
     # and sets coords = c
     def setcoords(self,c):
+        self.lastcoords = self.coords
         self.coords = c
 
     # getcoords() method
     # returns coords
     def getcoords(self):
         return self.coords
+
+    # getlastcoords() method
+    # returns lastcoords
+    def getlastcoords(self):
+        return self.lastcoords
 
     # geticon() method
     # returns icon
@@ -52,3 +59,9 @@ class Piece:
     # enables print() statements
     def __repr__(self):
       return '<Piece ' + self.name + ', ' + str(self.coords) + '>'
+
+    def __eq__(self, other):
+      try:
+        return self.getcoords() == other.getcoords() and self.getname() == other.getname()
+      except:
+        return False

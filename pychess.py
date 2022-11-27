@@ -51,9 +51,9 @@ def handleinput(turn, board, settings):
     print('Please input coordinates in the form "d2"')
     return 0
 
-  movedpiece = board.fetchpiece(s)[1]
+  movedpiece = board.fetchpiece(s)
   # ensure that there's a piece at the first coord
-  if movedpiece == 'o':
+  if movedpiece == 'none':
     print('No piece at ' + mv[0])
     return 0
 

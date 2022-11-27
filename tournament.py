@@ -49,9 +49,9 @@ class Tournament:
       # print('Please input coordinates in the form "d2"')
       return 0
   
-    movedpiece = board.fetchpiece(s)[1]
+    movedpiece = board.fetchpiece(s)
     # ensure that there's a piece at the first coord
-    if movedpiece == 'o':
+    if movedpiece == 'none':
       # print('No piece at ' + mv[0])
       return 0
   
@@ -100,11 +100,14 @@ class Tournament:
       res = self.runturn(turn, board)
       # If an AI concedes
       if res == -101:
+        print('turn ' + str(turn) + ' concession')
         return 3 - team
       turn += res
       if turn < 1:
+        print('turn ' + str(turn) + ' checkmate')
         return team
       if turn > 100:
+        print('draw')
         return 0
     return 0
 
