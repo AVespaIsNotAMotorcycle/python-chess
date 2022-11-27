@@ -51,7 +51,6 @@ class Opponent:
       # Check that the move is valid
       d = (s[0] + d_x, s[1] + d_y)
       if board.moveisvalid(s, d, board.fetchpiece(s)[1]):
-        print('Moving ' + piece.getname() + ' from ' + str(s) + ' ' + str(d))
         return coordtoal(s) + ' ' + coordtoal(d)
       moves.remove(move)
     # None are valid, start again

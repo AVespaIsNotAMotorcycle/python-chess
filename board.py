@@ -359,33 +359,24 @@ class Board:
     # to see if it would result in that
     # player being in check
     def resultsincheck(self,s,d,p):
-        ngs = ""
-        i = self.coordstoindex(s)
-        k = self.coordstoindex(d)
-        for c in range(len(self.gamestate)):
-            if c == i:
-                if s[0] % 2 == 0 and s[1] % 2 == 0:
-                    ngs += ' '
-                else:
-                    ngs += '-'
-            elif c == k:
-                ngs += p.geticon()
-            else:
-                ngs += self.gamestate[c]
-        tk = self.pieces[0]
-        for index, piece in enumerate(self.pieces):
-            if piece.getname() == 'King' and piece.getteam() == p.getteam():
-                tk = piece
-                break
-        for index, piece in enumerate(self.pieces):
-            if piece.getteam() != p.getteam():
-                if p.getname() != 'King':
-                    if self.moveisvalid(piece.getcoords(), tk.getcoords(), piece):
-                        return True
-                else:
-                    if self.moveisvalid(piece.getcoords(), d, piece):
-                        return True
+      mock = Board(deepcopy(self.getpieces()))
+      mock.movepiece(s,d,p)
+      mpieces = mock.getpieces()
+      # Find king
+      team = p.getteam()
+      king = mpieces[1]
+      for piece in mpieces:
+        if piece.getname() == 'King' and piece.getteam() == team:
+          king = piece
+          break
+      # Can only be in check if king exists
+      if king.getname() != 'King':
         return False
+      # Check whether opposing pieces can reach king
+      for piece in mpieces:
+        if mock.moveisvalid(piece.getcoords(), king.getcoords(), piece):
+          return True
+      return False
 
     # playerincheck(p) method
     # returns whether a player p is currently in check

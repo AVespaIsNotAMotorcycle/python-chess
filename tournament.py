@@ -1,3 +1,6 @@
+from board import Board, generatepieces
+from opponents.utils import create_opponent
+from utils import altocoord
 import time
 
 class Tournament:
@@ -10,7 +13,6 @@ class Tournament:
   def __init__(self, player1, player2):
     self.player1 = player1
     self.player2 = player2
-    self.maxrounds = rounds
     
     # Non-required props
     self.gametime = 1.0     # How many seconds a game can last
@@ -33,33 +35,29 @@ class Tournament:
       active = self.player2
     
     # Ask ai for move
-    mv = active.makemove(board, board.getpieces())
+    ai = create_opponent(team, active)
+    mv = ai.makemove(board, board.getpieces())
+
+    if mv == 'concede':
+      return -101
+
     mv = mv.split()
-    # handle input
-    if active == 'human':
-      mv = input()
-      mv = mv.split()
-      # ensure input has at exactly 2 terms
-      if len(mv) != 2:
-        print('Please input 2 coordinates')
-        return 0
-    
     s = altocoord(mv[0])
     d = altocoord(mv[1])
     # ensure that coordinates are properly formatted
     if s == False or d == False:
-      print('Please input coordinates in the form "d2"')
+      # print('Please input coordinates in the form "d2"')
       return 0
   
     movedpiece = board.fetchpiece(s)[1]
     # ensure that there's a piece at the first coord
     if movedpiece == 'o':
-      print('No piece at ' + mv[0])
+      # print('No piece at ' + mv[0])
       return 0
   
     # ensure that the piece is of the correct color
     if movedpiece.getteam() % 2 != turn % 2:
-      print('Piece at ' + mv[0] + ' is of the wrong color')
+      # print('Piece at ' + mv[0] + ' is of the wrong color')
       return 0
   
     # ensure that the move is valid
@@ -76,10 +74,10 @@ class Tournament:
     board.movepiece(s, d, movedpiece)
     if board.playerincheck(turn % 2 + 1):
       if board.playermated(turn % 2 + 1):
-        print('Checkmate!')
+        # print('Checkmate!')
         return(-10000)
-      else:
-        print('Check!')
+     # else:
+        # print('Check!')
     return 1
 
   '''
@@ -97,26 +95,40 @@ class Tournament:
     # Run turns until game is complete,
     # either by draw or victory
     gamestart = time.time()
-    while time.time() - gamestart < gametime:
+    while time.time() - gamestart < self.gametime:
       team = 2 - turn % 2
-      turn += self.runturn(turn, board)
+      res = self.runturn(turn, board)
+      # If an AI concedes
+      if res == -101:
+        return 3 - team
+      turn += res
       if turn < 1:
         return team
       if turn > 100:
         return 0
     return 0
 
+  def restostring(self,res):
+    if res == 2:
+      return 'Black'
+    if res == 1:
+      return 'White'
+    return 'Draw'
+
   '''
   runtournament() methond
   runs a number of games equal to self.rounds
   prints the results
   '''
-  def runtournament(rounds = self.rounds, report = True):
+  def runtournament(self, settings):
+    report = True
+    rounds = settings['maxturns']
     results = []
     starttime = time.time()
     for i in range(rounds):
-      results.append(game())
+      results.append(self.game())
+      print('Game ' + str(i) + ': ' + self.restostring(results[-1]))
     endtime = time.time()
     if (report):
-      print(str(rounds) + ' games completed in ' + endtime - startime + ' seconds')
+      print(str(rounds) + ' games completed in ' + str(endtime - starttime) + ' seconds')
     return results

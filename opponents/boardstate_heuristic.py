@@ -36,7 +36,7 @@ class OppBoardStateHeuristic(Opponent):
       return 1000
     if matestatus == 'opp_mate':
       return 2000
-    for piece in gamestate:
+    for piece in pieces:
       tile = piece.getcoords()
       tile_util = self.coordtoutil(tile[0], tile[1])
       tile_util = tile_util * piece.getpoints()
@@ -92,8 +92,11 @@ class OppBoardStateHeuristic(Opponent):
       p = deepcopy(move[0])
       s = p.getcoords()
       d = move[1]
-      if board.moveisvalid(s, d, p):
-        prunedmoves.append(move)
+      if not board.moveisvalid(s, d, p):
+        continue
+      if board.resultsincheck(s, d, p):
+        continue  
+      prunedmoves.append(move)
 
     # Create frontier of possible boardstates
     # Contains tuples of form (Move, Value) where
@@ -107,9 +110,13 @@ class OppBoardStateHeuristic(Opponent):
       u = self.utility(board.mockmove(s,d,p))
       frontier.append(((s, d), u))
 
+    # If no valid moves, concede
+    return 'concede'
+
     # Return move that produces highest utility
     beststate = frontier[0]
     for state in frontier:
       if state[1] > beststate[1]:
         beststate = state
+    
     return coordtoal(beststate[0][0]) + ' ' + coordtoal(beststate[0][1])

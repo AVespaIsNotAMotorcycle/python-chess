@@ -1,6 +1,7 @@
 from utils import DEFAULT_SETTINGS, AI_LIST, altocoord, coordtoal
 from piece import Piece
 from board import Board, generatepieces
+from tournament import Tournament
 from opponents.utils import create_opponent
 import sys
 
@@ -90,9 +91,11 @@ def playerprefs(settings = DEFAULT_SETTINGS().copy()):
       settings['observing'] = i
 
   if settings['observing'] == 'observe' or settings['observing'] == 'tournament':
-    settings['players']['white'] = 'ai'
-    settings['players']['black'] = 'ai'
-    return settings
+    if settings['players']['white'] == 'None':
+      settings['players']['white'] = 'ai'
+    if settings['players']['black'] == 'None':
+      settings['players']['black'] = 'ai'
+    settings['opponent'] = 'ai'
 
   # Check if playing against human or ai
   while settings['opponent'] == 'None':
@@ -166,7 +169,9 @@ def observergame(settings, board):
     board.render()
 
 def tournamentgame(settings, board):
+  t = Tournament(settings['players']['white'], settings['players']['black'])
   print('tournament')
+  t.runtournament(settings)
 
 def main(argv):
   # Setup
@@ -204,7 +209,6 @@ def main(argv):
   settings = playerprefs(settings)
 
   print(settings)
-
   # initialize board
   pieces = generatepieces()
   board = Board(pieces)

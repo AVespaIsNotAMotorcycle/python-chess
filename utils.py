@@ -4,8 +4,8 @@ def DEFAULT_SETTINGS():
     'opponent': 'None',
     'playercolor': 'None',
     'players': {
-      'white': 'human',
-      'black': 'human',
+      'white': 'None',
+      'black': 'None',
     },
     'maxturns': 200
   }
