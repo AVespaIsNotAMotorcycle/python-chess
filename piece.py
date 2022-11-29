@@ -54,6 +54,14 @@ class Piece:
     def getpoints(self):
         return self.points
 
+    # copy() method
+    # returns a deep copy
+    def copy(self):
+      # (self, name, icon, moves, team, coords, points):
+      c = Piece(self.name,self.icon,self.moves,self.team,self.coords,self.points)
+      c.lastcoords = self.lastcoords
+      return c
+
     # __repr__() method
     # returns name and coords
     # enables print() statements

@@ -33,6 +33,8 @@ def handleinput(turn, board, settings):
       ai = create_opponent(team, active)
       mv = ai.makemove(board, board.getpieces())
       print(mv)
+      if mv == 'concede':
+        return -101
       mv = mv.split()
 
   # handle input
@@ -73,7 +75,10 @@ def handleinput(turn, board, settings):
     return 0
 
   # if it has passed all the tests above, enact move
+  if board.fetchpiece(d) != 'none':
+    print('took', board.fetchpiece(d).getname())
   board.movepiece(s, d, movedpiece)
+  print(len(board.getpieces()),'pieces remaining')
   if board.playerincheck(turn % 2 + 1):
     if board.playermated(turn % 2 + 1):
       print('Checkmate!')
@@ -205,6 +210,12 @@ def main(argv):
       settings['playercolor'] = 'white'
       settings['players']['black'] = argv[i + 1]
       print('set player 2 to ' + argv[i + 1])
+
+  ## Set maxturns
+  if argv.count('maxturns') > 0:
+    i = argv.index('maxturns')
+    if argv[i + 1].isnumeric():
+      settings['maxturns'] = int(argv[i + 1])
 
   settings = playerprefs(settings)
 

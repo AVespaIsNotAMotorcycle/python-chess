@@ -46,11 +46,11 @@ def interpretmoves(s,moves):
     if mv[0] == 'x' or mv[1] == 'x':
       for delta in range(1,9):
         if mv[0] == 'x' and mv[1] == 'x':
-          interpretedmoves.append((delta,delta))
+          interpretedmoves.append((s[0] + delta,s[1] + delta))
         elif mv[0] == 'x':
-          interpretedmoves.append((delta,mv[1]))
+          interpretedmoves.append((s[0] + delta,s[1] + mv[1]))
         else:
-          interpretedmoves.append((mv[0],delta))
+          interpretedmoves.append((s[0] + mv[0],s[1] + delta))
         continue
     # Constant distance moves
     else:

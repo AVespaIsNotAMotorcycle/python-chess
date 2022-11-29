@@ -101,13 +101,16 @@ class Tournament:
       # If an AI concedes
       if res == -101:
         print('turn ' + str(turn) + ' concession')
+        board.render()
         return 3 - team
       turn += res
       if turn < 1:
         print('turn ' + str(turn) + ' checkmate')
+        board.render()
         return team
       if turn > 100:
         print('draw')
+        board.render()
         return 0
     return 0
 
@@ -129,6 +132,7 @@ class Tournament:
     results = []
     starttime = time.time()
     for i in range(rounds):
+      print('-----------------------------------------')
       results.append(self.game())
       print('Game ' + str(i) + ': ' + self.restostring(results[-1]))
     endtime = time.time()

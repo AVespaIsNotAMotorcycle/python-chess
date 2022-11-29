@@ -1,5 +1,5 @@
 from opponents.opponent import Opponent
-from utils import coordtoal
+from utils import coordtoal, interpretmoves
 from copy import deepcopy
 
 class OppBoardStateHeuristic(Opponent):
@@ -18,24 +18,12 @@ class OppBoardStateHeuristic(Opponent):
       y_u = 5 - (y_u - 4)
     return x_u * y_u
 
-  # utility((pieces), matestatus) where
+  # utility(pieces) where
   # pieces is a list of extant pieces
-  # and matestatus is a string of value
-  # none || self_check || self_mate || opp_check || opp_mate
   # returns u, where u is an evaluation of the
   # utility of that gamestate
-  def utility(self, gamestate):
-    pieces = gamestate[0]
-    matestatus = gamestate[1]
+  def utility(self, pieces):
     u = 0
-    if matestatus == 'self_check':
-      return -1000
-    if matestatus == 'self_mate':
-      return -1000
-    if matestatus == 'opp_check':
-      return 1000
-    if matestatus == 'opp_mate':
-      return 2000
     for piece in pieces:
       tile = piece.getcoords()
       tile_util = self.coordtoutil(tile[0], tile[1])
@@ -68,28 +56,14 @@ class OppBoardStateHeuristic(Opponent):
     for piece in ownedpieces:
       piecemoves = piece.getmoves()
       s = piece.getcoords()
-      for move in piecemoves:
-        # Handle moves of variable distance
-        if move[0] == 'x' or move[1] == 'x':
-          deltarange = range(1, 9)
-          for delta in deltarange:
-            if move[0] == 'x' and move[1] == 'x':
-              d = (s[0] + delta, s[1] + delta)
-              possiblemoves.append((piece, d))
-            elif move[0] == 'x':
-              d = (s[0] + delta, s[1] + move[1])
-              possiblemoves.append((piece, d))
-            elif move[1] == 'x':
-              d = (s[0] + move[0], s[1] + delta)
-              possiblemoves.append((piece, d))
-        else:
-          d = (s[0] + move[0], s[1] + move[1])
-          possiblemoves.append((piece, d))
+      imoves = interpretmoves(s,piecemoves)
+      for move in imoves:
+        possiblemoves.append((piece,move))
 
     # Prune invalid moves
     prunedmoves = []
     for move in possiblemoves:
-      p = deepcopy(move[0])
+      p = move[0].copy()
       s = p.getcoords()
       d = move[1]
       if not board.moveisvalid(s, d, p):
@@ -104,14 +78,22 @@ class OppBoardStateHeuristic(Opponent):
     # Value is the utility of the resulting boardstate
     frontier = []
     for move in prunedmoves:
-      p = deepcopy(move[0])
+      p = move[0].copy()
       s = p.getcoords()
       d = move[1]
-      u = self.utility(board.mockmove(s,d,p))
+      mockpieces = board.mockmove(s,d,p)
+      u = 0
+      if board.mockplayerincheck(mockpieces, self.team):
+        u = -1000
+      elif board.mockplayerincheck(mockpieces, 3 - self.team):
+        u = 1000
+      else:
+        u = self.utility(mockpieces)
       frontier.append(((s, d), u))
 
     # If no valid moves, concede
-    return 'concede'
+    if len(frontier) == 0:
+      return 'concede'
 
     # Return move that produces highest utility
     beststate = frontier[0]

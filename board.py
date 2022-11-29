@@ -49,6 +49,11 @@ class Board:
   # d: scalar (x,y) representing destination tile
   # p: Piece to be moved
   def moveinrange(self,s,d,p):
+    # Check that s and d are within the board limits
+    bounds = [s[0],s[1],d[0],d[1]]
+    for bound in bounds:
+      if bound < 1 or bound > 8:
+        return False
     moves = p.getmoves()
     for mv in moves:
       # Variable distance moves
@@ -67,6 +72,30 @@ class Board:
         if comp_d == d:
           return True
     return False
+
+  # moveunobstructed(s,d)
+  # checks whether there are any pieces blocking
+  # the path from s to d
+  def moveunobstructed(self,s,d,v):
+    delta = (d[0] - s[0], d[1] - s[1])
+    # Knights cannot be obstructed
+    if delta[0] != delta[1] and not (delta[0] == 0 or delta[1] == 0):
+      return True
+    # don't want full distance, as we aren't looking at tile d, since an enemy piece there isn't an obstruction
+    distance = max(delta[0], delta[1]) - 1
+    if distance == 0:
+      return True
+    for i in range(1,distance):
+      nx = 0
+      ny = 0
+      if delta[0] > 0:
+        nx = i
+      if delta[1] > 0:
+        ny = i
+      nd = (s[0] + nx, s[1] + ny)
+      if self.fetchpiece(nd) != 'none':
+        return False
+    return True
 
   # cancapture(s,d,p)
   # s: scalar (x,y) representing starting tile
@@ -149,6 +178,11 @@ class Board:
       # but that's annoying to parse
       return False
 
+    # Check that there is no piece blocking the path
+    moveunobstructed = self.moveunobstructed(s,d,True)
+    if not moveunobstructed:
+      return False
+
     # If piece is pawn, check whether it is capturing a piece
     # and if it is a valid capture
     if p.getname() == 'Pawn' and not inrange:
@@ -188,11 +222,21 @@ class Board:
   # a year ago all as one function. I've broken
   # them up but I do not understand them.
   def movepiece(self, s, d, p):
+    self.moveunobstructed(s,d,True)
     # Castling
     # Enpassent
     # Enact move
+    targetpiece = self.fetchpiece(d)
+    if targetpiece != 'none':
+      self.pieces.remove(targetpiece)
     self.moves.append((s,d,p))
     p.setcoords(d)
+    # Remove pawn 2 tile move
+    if p.getname() == 'Pawn':
+      if p.moves.count((0,2)) > 0:
+        p.moves.remove((0,2))
+      if p.moves.count((0,-2)) > 0:
+        p.moves.remove((0,-2))
     # Pawn Promotion
     return
 
@@ -201,7 +245,10 @@ class Board:
   # that board's pieces after performing
   # a move
   def mockmove(self,s,d,p):
-    return
+    mockboard = Board(deepcopy(self.getpieces()))
+    np = mockboard.fetchpiece(s)
+    mockboard.movepiece(s,d,np)
+    return mockboard.getpieces()
 
   # resultsincheck(s,d,p) method
   # computes an otherwise valid move
@@ -227,6 +274,15 @@ class Board:
   # returns whether a player p is currently in check
   def playerincheck(self,p):
     return False
+
+  # mockplayerincheck(p)
+  # pieces: list of Pieces
+  # player: 1 || 2, which player to check for
+  # creates an board with Pieces pieces
+  # and returns whether player is in check
+  def mockplayerincheck(self,pieces,player):
+    mockboard = Board(pieces)
+    return mockboard.playerincheck(player)
 
   # playermated(p) method
   # returns whether a player p is in checkmate
