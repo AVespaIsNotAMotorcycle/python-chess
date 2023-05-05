@@ -37,6 +37,13 @@ def coordtoal(i):
   y = str(i[1])
   return x + y
 
+def inboard(coords):
+  if coords[0] < 0 or coords[0] > 7:
+    return False
+  if coords[1] < 0 or coords[1] > 7:
+    return False
+  return True
+
 # s : (x,y) start position
 # moves : list of moves
 def interpretmoves(s,moves):
@@ -45,12 +52,14 @@ def interpretmoves(s,moves):
     # Variable distance moves
     if mv[0] == 'x' or mv[1] == 'x':
       for delta in range(1,9):
+        newx = delta
+        newy = delta
         if mv[0] == 'x' and mv[1] == 'x':
-          interpretedmoves.append((s[0] + delta,s[1] + delta))
+          interpretedmoves.append((newx, newy))
         elif mv[0] == 'x':
-          interpretedmoves.append((s[0] + delta,s[1] + mv[1]))
+          interpretedmoves.append((newx, s[1] + mv[1]))
         else:
-          interpretedmoves.append((s[0] + mv[0],s[1] + delta))
+          interpretedmoves.append((s[0] + mv[0], newy))
         continue
     # Constant distance moves
     else:

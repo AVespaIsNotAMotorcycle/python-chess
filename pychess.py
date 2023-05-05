@@ -174,9 +174,15 @@ def observergame(settings, board):
     board.render()
 
 def tournamentgame(settings, board):
-  t = Tournament(settings['players']['white'], settings['players']['black'])
+  p1name = settings['players']['white']
+  p2name = settings['players']['black']
+  t = Tournament(p1name, p2name)
   print('tournament')
-  t.runtournament(settings)
+  results = t.runtournament(settings)
+  p1winrate = results.count(1) / len(results)
+  p2winrate = results.count(2) / len(results)
+  print(f'{p1name} (white): {p1winrate * 100}% winrate')
+  print(f'{p2name} (black): {p2winrate * 100}% winrate')
 
 def main(argv):
   # Setup

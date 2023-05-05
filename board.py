@@ -113,6 +113,10 @@ class Board:
       return True
     return False
 
+  # castling banned for now :)
+  def isvalidcastle(self, start, destination, piece):
+    return False
+
   # A valid capture must be
   # - diagonal
   # - of distance 1
@@ -170,7 +174,8 @@ class Board:
     # Check that the target tile is either empty
     # or contains a capturable piece
     cancapture = self.cancapture(s,d,p)
-    if not cancapture and not (p.getname() == 'King'):
+    isvalidcastle = self.isvalidcastle(s,d,p)
+    if not cancapture and not isvalidcastle:
       # For kings, castling is an exception,
       # as, to make input simpler, I'm breaking from
       # algebraic notation for castling input

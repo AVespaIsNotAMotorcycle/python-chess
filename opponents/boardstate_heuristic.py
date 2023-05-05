@@ -1,10 +1,14 @@
 from opponents.opponent import Opponent
 from utils import coordtoal, interpretmoves
 from copy import deepcopy
+import time
 
 class OppBoardStateHeuristic(Opponent):
   def __init__(self, team):
     self.team = team
+    self.time_generating_moves = 0
+    self.time_pruning_moves = 0
+    self.time_searching_frontier = 0
 
   # takes a coordinate pair (x, y)
   # and returns the utility of occupying that tile
@@ -52,6 +56,7 @@ class OppBoardStateHeuristic(Opponent):
     # Piece is a Piece and
     # Move is a tuple of form (x, y) representing
     # a possible destination
+    start = time.time()
     possiblemoves = []
     for piece in ownedpieces:
       piecemoves = piece.getmoves()
@@ -59,8 +64,11 @@ class OppBoardStateHeuristic(Opponent):
       imoves = interpretmoves(s,piecemoves)
       for move in imoves:
         possiblemoves.append((piece,move))
+    end = time.time()
+    self.time_generating_moves += end - start
 
     # Prune invalid moves
+    start = time.time()
     prunedmoves = []
     for move in possiblemoves:
       p = move[0].copy()
@@ -71,11 +79,14 @@ class OppBoardStateHeuristic(Opponent):
       if board.resultsincheck(s, d, p):
         continue  
       prunedmoves.append(move)
+    end = time.time()
+    self.time_pruning_moves += end - start
 
     # Create frontier of possible boardstates
     # Contains tuples of form (Move, Value) where
     # Move is the move that would be made and
     # Value is the utility of the resulting boardstate
+    start = time.time()
     frontier = []
     for move in prunedmoves:
       p = move[0].copy()
@@ -90,7 +101,12 @@ class OppBoardStateHeuristic(Opponent):
       else:
         u = self.utility(mockpieces)
       frontier.append(((s, d), u))
+    end = time.time()
+    self.time_searching_frontier += end - start
 
+    print(f'Time generating moves: {self.time_generating_moves * 1000} ms')
+    print(f'Time pruning: {self.time_pruning_moves * 1000} ms')
+    print(f'Time searching frontier: {self.time_searching_frontier * 1000} ms')
     # If no valid moves, concede
     if len(frontier) == 0:
       return 'concede'
