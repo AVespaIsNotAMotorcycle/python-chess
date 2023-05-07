@@ -22,25 +22,18 @@ class Opponent:
     for piece in pieces:
       if piece.getteam() == self.team:
         ownedpieces.append(piece)
-    # Randomly order owned pieces
-    piecequeue = []
     while len(ownedpieces) > 0:
-      i = random.randrange(len(ownedpieces))
-      p = ownedpieces[i]
-      piecequeue.append(p)
-      ownedpieces.pop(i)
-    # Interpret piece moves
-    while len(piecequeue) > 0:
-      p = piecequeue[0]
-      s = p.getcoords()
-      moves = interpretmoves(s,p.getmoves())
+      pieceindex = random.randrange(0, len(ownedpieces))
+      piece = ownedpieces[pieceindex]
+      start = piece.getcoords()
+      moves = interpretmoves(start, piece.getmoves())
       while len(moves) > 0:
-        i = random.randrange(len(moves))
-        mv = moves[i]
-        if board.moveisvalid(s,mv,p):
-          return coordtoal(s) + ' ' + coordtoal(mv)
-        moves.pop(i)
-      piecequeue.pop(0)
+        moveindex = random.randrange(0, len(moves))
+        move = moves[moveindex]
+        if (board.moveisvalid(start, move, piece)):
+          return coordtoal(start) + ' ' + coordtoal(move)
+        moves.pop(moveindex)
+      ownedpieces.pop(pieceindex)
     return 'concede'
 
   def promotepiece(self, board):
