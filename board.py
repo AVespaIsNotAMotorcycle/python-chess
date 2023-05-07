@@ -76,25 +76,18 @@ class Board:
   # moveunobstructed(s,d)
   # checks whether there are any pieces blocking
   # the path from s to d
-  def moveunobstructed(self,s,d,v):
-    delta = (d[0] - s[0], d[1] - s[1])
-    # Knights cannot be obstructed
-    if delta[0] != delta[1] and not (delta[0] == 0 or delta[1] == 0):
-      return True
-    # don't want full distance, as we aren't looking at tile d, since an enemy piece there isn't an obstruction
-    distance = max(delta[0], delta[1]) - 1
-    if distance == 0:
-      return True
-    for i in range(1,distance):
-      nx = 0
-      ny = 0
-      if delta[0] > 0:
-        nx = i
-      if delta[1] > 0:
-        ny = i
-      nd = (s[0] + nx, s[1] + ny)
-      if self.fetchpiece(nd) != 'none':
-        return False
+  def moveunobstructed(self,s,d):
+    deltax = d[0] - s[0]
+    deltay = d[1] - s[1]
+
+    isknight = (deltax == 2 and deltay == 1) or (deltax == 1 and deltay == 2)
+    if isknight: return True
+
+    while deltax > 1 or deltay > 1:
+      if deltax != 0: deltax -= 1
+      if deltay != 0: deltay -= 1
+      if self.fetchpiece((deltax, deltay)) != 'none': return False
+
     return True
 
   # cancapture(s,d,p)
@@ -184,7 +177,7 @@ class Board:
       return False
 
     # Check that there is no piece blocking the path
-    moveunobstructed = self.moveunobstructed(s,d,True)
+    moveunobstructed = self.moveunobstructed(s,d)
     if not moveunobstructed:
       return False
 
@@ -227,7 +220,7 @@ class Board:
   # a year ago all as one function. I've broken
   # them up but I do not understand them.
   def movepiece(self, s, d, p):
-    self.moveunobstructed(s,d,True)
+    self.moveunobstructed(s,d)
     # Castling
     # Enpassent
     # Enact move
