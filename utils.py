@@ -44,6 +44,11 @@ def inboard(coords):
     return False
   return True
 
+def sign(number):
+  if number > 0: return 1
+  if number < 0: return -1
+  return 0
+
 # s : (x,y) start position
 # moves : list of moves
 def interpretmoves(s,moves):

@@ -1,4 +1,4 @@
-from utils import DEFAULT_SETTINGS, altocoord, coordtoal, interpretmoves
+from utils import DEFAULT_SETTINGS, altocoord, coordtoal, interpretmoves, sign
 from piece import Piece
 from opponents.utils import create_opponent
 from copy import deepcopy
@@ -68,12 +68,12 @@ class Board:
     deltax = d[0] - s[0]
     deltay = d[1] - s[1]
 
-    isknight = (deltax == 2 and deltay == 1) or (deltax == 1 and deltay == 2)
+    isknight = self.fetchpiece(s).getname() == 'Knight'
     if isknight: return True
 
-    while deltax > 1 or deltay > 1:
-      if deltax != 0: deltax -= 1
-      if deltay != 0: deltay -= 1
+    while deltax != 0 or deltay != 0:
+      deltax -= sign(deltax)
+      deltay -= sign(deltay)
       tile_to_check = (s[0] + deltax, s[1] + deltay)
       if self.fetchpiece(tile_to_check) != 'none': return False
 
@@ -146,6 +146,10 @@ class Board:
   # whether to check if the move would put you in check
   # returns true if a piece would be allowed to make the move
   def moveisvalid(self, s, d, p, c = True):
+    if self.fetchpiece(s) == 'none' or self.fetchpiece(s).getname() != p.getname():
+      print('p did not match s')
+      return False
+
     # Check that move is in range
     inrange = self.moveinrange(s,d,p)
     range_exempt = p.getname() == 'King' or p.getname() == 'Pawn'
@@ -205,7 +209,6 @@ class Board:
   # a year ago all as one function. I've broken
   # them up but I do not understand them.
   def movepiece(self, s, d, p):
-    self.moveunobstructed(s,d)
     # Castling
     # Enpassent
     # Enact move
@@ -238,24 +241,25 @@ class Board:
   # to see if it would result in that
   # player being in check
   def resultsincheck(self,s,d,p):
-    # Find king
-    k = self.pieces[0]
-    for piece in self.pieces:
-      if piece.getname() == 'King' and piece.getteam() == p.getteam():
-        k = piece
-        break
-    if k.getname() != 'King':
-      return False
-    # See if opposing team can find king
-    for piece in self.pieces:
-      if piece.getteam() != p.getteam():
-        if self.moveisvalid(piece.getcoords(),k.getcoords(),piece,False):
-          return True
-    return False
+    resulting_pieces = self.mockmove(s, d, p)
+    return self.playerincheck(p, resulting_pieces)
 
   # playerincheck(p) method
   # returns whether a player p is currently in check
-  def playerincheck(self,p):
+  def playerincheck(self, player, pieces = []):
+    if not pieces: pieces = self.pieces
+
+    player_king = pieces[0]
+    for piece in pieces:
+      if piece.getname() == 'King' and piece.getteam() == player:
+        player_king = piece
+        break
+
+    destination = player_king.getcoords()
+    for piece in pieces:
+      start = piece.getcoords()
+      if self.moveisvalid(start, destination, piece): return True
+
     return False
 
   # mockplayerincheck(p)
