@@ -86,7 +86,8 @@ class Board:
     while deltax > 1 or deltay > 1:
       if deltax != 0: deltax -= 1
       if deltay != 0: deltay -= 1
-      if self.fetchpiece((deltax, deltay)) != 'none': return False
+      tile_to_check = (s[0] + deltax, s[1] + deltay)
+      if self.fetchpiece(tile_to_check) != 'none': return False
 
     return True
 
@@ -159,10 +160,8 @@ class Board:
   def moveisvalid(self, s, d, p, c = True):
     # Check that move is in range
     inrange = self.moveinrange(s,d,p)
-    if not inrange and not (p.getname() == 'King' or p.getname() == 'Pawn'):
-      # Pawn captures and castline would both
-      # be legal but not inrange
-      return False
+    range_exempt = p.getname() == 'King' or p.getname() == 'Pawn'
+    if not inrange and not range_exempt: return False
 
     # Check that the target tile is either empty
     # or contains a capturable piece
@@ -178,8 +177,7 @@ class Board:
 
     # Check that there is no piece blocking the path
     moveunobstructed = self.moveunobstructed(s,d)
-    if not moveunobstructed:
-      return False
+    if not moveunobstructed: return False
 
     # If piece is pawn, check whether it is capturing a piece
     # and if it is a valid capture
@@ -196,9 +194,8 @@ class Board:
         return False
 
     # Check that move does not result in check
-    if c:
-      if self.resultsincheck(s,d,p):
-        return False
+    if c and self.resultsincheck(s,d,p):
+      return False
 
     return True
 
