@@ -1,4 +1,4 @@
-from utils import DEFAULT_SETTINGS, altocoord, coordtoal
+from utils import DEFAULT_SETTINGS, altocoord, coordtoal, interpretmoves
 from piece import Piece
 from opponents.utils import create_opponent
 from copy import deepcopy
@@ -55,21 +55,9 @@ class Board:
       if bound < 1 or bound > 8:
         return False
     moves = p.getmoves()
-    for mv in moves:
-      # Variable distance moves
-      if mv[0] == 'x' or mv[1] == 'x':
-        for delta in range(1,9):
-          if mv[0] == 'x' and mv[1] == 'x':
-            moves.append((delta,delta))
-          elif mv[0] == 'x':
-            moves.append((delta,mv[1]))
-          else:
-            moves.append((mv[0],delta))
-          continue
-      # Constant distance moves
-      else:
-        comp_d = (s[0] + mv[0], s[1] + mv[1])
-        if comp_d == d:
+    constant_moves = interpretmoves(s, moves)
+    for mv in constant_moves:
+        if mv == d:
           return True
     return False
 
