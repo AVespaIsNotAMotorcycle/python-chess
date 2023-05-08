@@ -51,10 +51,15 @@ def interpretmoves(s,moves):
   for mv in moves:
     # Variable distance moves
     if mv[0] == 'x' or mv[1] == 'x':
-      for delta in range(1,9):
-        newx = delta
-        newy = delta
+      for delta in range(-7,8):
+        newx = s[0] + delta
+        newy = s[1] + delta
         if mv[0] == 'x' and mv[1] == 'x':
+          interpretedmoves.append((newx, newy))
+          newx = s[0] - delta
+          interpretedmoves.append((newx, newy))
+          newx = s[0] + delta
+          newy = s[1] - delta
           interpretedmoves.append((newx, newy))
         elif mv[0] == 'x':
           interpretedmoves.append((newx, s[1] + mv[1]))
