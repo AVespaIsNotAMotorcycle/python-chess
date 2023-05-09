@@ -147,7 +147,6 @@ class Board:
   # returns true if a piece would be allowed to make the move
   def moveisvalid(self, s, d, p, c = True):
     if self.fetchpiece(s) == 'none' or self.fetchpiece(s).getname() != p.getname():
-      print('p did not match s')
       return False
 
     # Check that move is in range
@@ -258,7 +257,7 @@ class Board:
     destination = player_king.getcoords()
     for piece in pieces:
       start = piece.getcoords()
-      if self.moveisvalid(start, destination, piece): return True
+      if self.moveisvalid(start, destination, piece, False): return True
 
     return False
 
